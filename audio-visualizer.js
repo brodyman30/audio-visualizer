@@ -84,11 +84,11 @@ class AudioVisualizer extends HTMLElement {
         if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
             title: 'Wildcat 91.9',
-            artist: 'Listen Live!',
-            album: 'You Belong!',
+            artist: 'You Belong!',
+            album: '',
             artwork: [
               {
-                src: this.shadowRoot.querySelector('.audio-img').src,
+                src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
                 sizes: '300x300',
                 type: 'image/png'
               }
