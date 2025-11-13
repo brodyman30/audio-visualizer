@@ -38,7 +38,8 @@ class AudioVisualizerMobile extends HTMLElement {
 
         .visualizer {
           display: none; /* 🔒 Hidden until clicked */
-          flex-direction: column;
+          flex-direction: row;
+          align-items: flex-end;
           justify-content: center;
           gap: 4px;
           height: 100px;
