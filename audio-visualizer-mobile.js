@@ -7,6 +7,14 @@ class AudioVisualizerMobile extends HTMLElement {
   connectedCallback() {
     this.shadowRoot.innerHTML = `
       <style>
+        :host {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 100%;
+        }
+
         .player-wrapper {
           display: flex;
           flex-direction: column;
@@ -22,15 +30,14 @@ class AudioVisualizerMobile extends HTMLElement {
 
         .audio-img {
           width: 100%;
-          height: 100%px;
+          height: 100%;
           border-radius: 12px;
           object-fit: contain;
-          
-          
         }
 
         .visualizer {
-          display: flex;
+          display: none; /* 🔒 Hidden until clicked */
+          flex-direction: row;
           justify-content: center;
           gap: 4px;
           height: 100px;
@@ -73,10 +80,12 @@ class AudioVisualizerMobile extends HTMLElement {
     const coverImage = this.shadowRoot.getElementById('coverImage');
     const audio = this.shadowRoot.getElementById('audio');
     const bars = this.shadowRoot.querySelectorAll('.bar');
+    const visualizer = this.shadowRoot.getElementById('visualizer-top');
 
     coverImage.addEventListener('click', () => {
       if (audio.paused) {
         audio.play();
+        visualizer.style.display = 'flex'; // ✅ Show bars on play
         bars.forEach(bar => bar.style.animationPlayState = 'running');
 
         if ('mediaSession' in navigator) {
@@ -95,6 +104,7 @@ class AudioVisualizerMobile extends HTMLElement {
 
           navigator.mediaSession.setActionHandler('play', () => {
             audio.play();
+            visualizer.style.display = 'flex';
             bars.forEach(bar => bar.style.animationPlayState = 'running');
           });
 
