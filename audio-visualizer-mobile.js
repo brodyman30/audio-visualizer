@@ -47,7 +47,7 @@ class AudioVisualizerMobile extends HTMLElement {
 
         .bar {
           width: 6px;
-          height: 40px;
+          height: 60px;
           background: linear-gradient(to top, #8262a9, #fdc259);
           border-radius: 3px;
           animation: pulse 1s infinite ease-in-out;
