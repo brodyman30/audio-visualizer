@@ -31,7 +31,7 @@ class AudioVisualizer extends HTMLElement {
           flex-direction: row;
           justify-content: center;
           gap: 4px;
-          height: 200px;
+          height: 150px;
         }
 
         .bar {
