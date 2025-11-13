@@ -62,7 +62,7 @@ class AudioVisualizer extends HTMLElement {
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <div class="audio-player" id="coverImage">
-          <img src="https://static.wixstatic.com/media/eaaa6a_5dce43e4f7564dba9701da64b842d743.png" alt="Cover" class="audio-img" />
+          <img src="https://static.wixstatic.com/media/eaaa6a_07805a4ac51e48a6ac16f2690dc31903~mv2.png" alt="Cover" class="audio-img" />
         </div>
         <div class="visualizer" id="visualizer-right">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
