@@ -61,7 +61,7 @@ class AudioVisualizerMobile extends HTMLElement {
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <div class="audio-player" id="coverImage">
-          <img src="https://static.wixstatic.com/media/eaaa6a_5dce43e4f7564dba9701da64b842d743.png" alt="Cover" class="audio-img" />
+          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" class="audio-img" />
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3"></audio>
       </div>
