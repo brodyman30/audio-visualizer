@@ -1,4 +1,4 @@
-class AudioVisualizer extends HTMLElement {
+class AudioVisualizerMobile extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -9,14 +9,14 @@ class AudioVisualizer extends HTMLElement {
       <style>
         .player-wrapper {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 20px;
+          gap: 16px;
         }
 
         .audio-player {
-          position: relative;
-          width: 250px;
-          height: 250px;
+          width: 200px;
+          height: 200px;
           cursor: pointer;
         }
 
@@ -28,16 +28,15 @@ class AudioVisualizer extends HTMLElement {
 
         .visualizer {
           display: flex;
-          flex-direction: row;
           justify-content: center;
           gap: 4px;
-          height: 150px;
+          height: 100px;
         }
 
         .bar {
-          width: 8px;
+          width: 6px;
           background: linear-gradient(to top, #8262a9, #fdc259);
-          border-radius: 4px;
+          border-radius: 3px;
           animation: pulse 1s infinite ease-in-out;
           animation-play-state: paused;
         }
@@ -58,14 +57,11 @@ class AudioVisualizer extends HTMLElement {
       </style>
 
       <div class="player-wrapper">
-        <div class="visualizer" id="visualizer-left">
+        <div class="visualizer" id="visualizer-top">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <div class="audio-player" id="coverImage">
-          <img src="https://static.wixstatic.com/media/eaaa6a_07805a4ac51e48a6ac16f2690dc31903~mv2.png" alt="Cover" class="audio-img" />
-        </div>
-        <div class="visualizer" id="visualizer-right">
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <img src="https://static.wixstatic.com/media/eaaa6a_5dce43e4f7564dba9701da64b842d743.png" alt="Cover" class="audio-img" />
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3"></audio>
       </div>
@@ -80,7 +76,6 @@ class AudioVisualizer extends HTMLElement {
         audio.play();
         bars.forEach(bar => bar.style.animationPlayState = 'running');
 
-        // ✅ Set MediaSession metadata after playback starts
         if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
             title: 'Wildcat 91.9',
@@ -113,4 +108,4 @@ class AudioVisualizer extends HTMLElement {
   }
 }
 
-customElements.define('audio-visualizer-mobile', AudioVisualizer);
+customElements.define('audio-visualizer-mobile', AudioVisualizerMobile);
