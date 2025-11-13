@@ -15,8 +15,8 @@ class AudioVisualizerMobile extends HTMLElement {
         }
 
         .audio-player {
-          width: 200px;
-          height: 200px;
+          width: 150px;
+          height: 150px;
           cursor: pointer;
         }
 
