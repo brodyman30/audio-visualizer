@@ -15,14 +15,14 @@ class AudioVisualizerMobile extends HTMLElement {
         }
 
         .audio-player {
-          width: 200px;
-          height: 200px;
+          width: 150px;
+          height: 150px;
           cursor: pointer;
         }
 
         .audio-img {
-          width: 150px;
-          height: 150px;
+          width: 100%;
+          height: 100%px;
           border-radius: 12px;
           object-fit: contain;
           
