@@ -17,8 +17,9 @@ class AudioVisualizerMobile extends HTMLElement {
 
         .player-wrapper {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           align-items: center;
+          justify-content: center;
           gap: 16px;
         }
 
@@ -37,7 +38,7 @@ class AudioVisualizerMobile extends HTMLElement {
 
         .visualizer {
           display: none; /* 🔒 Hidden until clicked */
-          flex-direction: row;
+          flex-direction: column;
           justify-content: center;
           gap: 4px;
           height: 100px;
@@ -67,11 +68,14 @@ class AudioVisualizerMobile extends HTMLElement {
       </style>
 
       <div class="player-wrapper">
-        <div class="visualizer" id="visualizer-top">
+        <div class="visualizer" id="visualizer-left">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <div class="audio-player" id="coverImage">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" class="audio-img" />
+        </div>
+        <div class="visualizer" id="visualizer-right">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3"></audio>
       </div>
@@ -80,12 +84,12 @@ class AudioVisualizerMobile extends HTMLElement {
     const coverImage = this.shadowRoot.getElementById('coverImage');
     const audio = this.shadowRoot.getElementById('audio');
     const bars = this.shadowRoot.querySelectorAll('.bar');
-    const visualizer = this.shadowRoot.getElementById('visualizer-top');
+    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
     coverImage.addEventListener('click', () => {
       if (audio.paused) {
         audio.play();
-        visualizer.style.display = 'flex'; // ✅ Show bars on play
+        visualizers.forEach(v => v.style.display = 'flex');
         bars.forEach(bar => bar.style.animationPlayState = 'running');
 
         if ('mediaSession' in navigator) {
@@ -104,7 +108,7 @@ class AudioVisualizerMobile extends HTMLElement {
 
           navigator.mediaSession.setActionHandler('play', () => {
             audio.play();
-            visualizer.style.display = 'flex';
+            visualizers.forEach(v => v.style.display = 'flex');
             bars.forEach(bar => bar.style.animationPlayState = 'running');
           });
 
