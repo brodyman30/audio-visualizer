@@ -1,4 +1,4 @@
-class AudioVisualizer extends HTMLElement {
+class AudioVisualizerMobile extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -7,16 +7,25 @@ class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.shadowRoot.innerHTML = `
       <style>
+        :host {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          height: 100%;
+        }
+
         .player-wrapper {
           display: flex;
+          flex-direction: row;
           align-items: center;
-          gap: 20px;
+          justify-content: center;
+          gap: 16px;
         }
 
         .audio-player {
-          position: relative;
-          width: 250px;
-          height: 250px;
+          width: 150px;
+          height: 150px;
           cursor: pointer;
         }
 
@@ -24,20 +33,23 @@ class AudioVisualizer extends HTMLElement {
           width: 100%;
           height: 100%;
           border-radius: 12px;
+          object-fit: contain;
         }
 
         .visualizer {
-          display: flex;
+          display: none; /* 🔒 Hidden until clicked */
           flex-direction: row;
+          align-items: flex-end;
           justify-content: center;
           gap: 4px;
-          height: 150px;
+          height: 100px;
         }
 
         .bar {
-          width: 8px;
+          width: 6px;
+          height: 60px;
           background: linear-gradient(to top, #8262a9, #fdc259);
-          border-radius: 4px;
+          border-radius: 3px;
           animation: pulse 1s infinite ease-in-out;
           animation-play-state: paused;
         }
@@ -62,7 +74,7 @@ class AudioVisualizer extends HTMLElement {
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <div class="audio-player" id="coverImage">
-          <img src="https://static.wixstatic.com/media/eaaa6a_07805a4ac51e48a6ac16f2690dc31903~mv2.png" alt="Cover" class="audio-img" />
+          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" class="audio-img" />
         </div>
         <div class="visualizer" id="visualizer-right">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -74,18 +86,19 @@ class AudioVisualizer extends HTMLElement {
     const coverImage = this.shadowRoot.getElementById('coverImage');
     const audio = this.shadowRoot.getElementById('audio');
     const bars = this.shadowRoot.querySelectorAll('.bar');
+    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
     coverImage.addEventListener('click', () => {
       if (audio.paused) {
         audio.play();
+        visualizers.forEach(v => v.style.display = 'flex');
         bars.forEach(bar => bar.style.animationPlayState = 'running');
 
-        // ✅ Set MediaSession metadata after playback starts
         if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
             title: 'Wildcat 91.9',
-            artist: 'You Belong!',
-            album: '',
+            artist: 'Listen Live!',
+            album: 'You Belong!',
             artwork: [
               {
                 src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
@@ -97,6 +110,7 @@ class AudioVisualizer extends HTMLElement {
 
           navigator.mediaSession.setActionHandler('play', () => {
             audio.play();
+            visualizers.forEach(v => v.style.display = 'flex');
             bars.forEach(bar => bar.style.animationPlayState = 'running');
           });
 
@@ -113,4 +127,4 @@ class AudioVisualizer extends HTMLElement {
   }
 }
 
-customElements.define('audio-visualizer', AudioVisualizer);
+customElements.define('audio-visualizer', AudioVisualizerMobile);
