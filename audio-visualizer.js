@@ -62,7 +62,7 @@ class AudioVisualizer extends HTMLElement {
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <div class="audio-player" id="coverImage">
-          <img src="https://static.wixstatic.com/shapes/eaaa6a_5dce43e4f7564dba9701da64b842d743.svg" alt="Cover" class="audio-img" />
+          <img src="https://static.wixstatic.com/media/eaaa6a_5dce43e4f7564dba9701da64b842d743.png" alt="Cover" class="audio-img" />
         </div>
         <div class="visualizer" id="visualizer-right">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -79,32 +79,37 @@ class AudioVisualizer extends HTMLElement {
       if (audio.paused) {
         audio.play();
         bars.forEach(bar => bar.style.animationPlayState = 'running');
+
+        // ✅ Set MediaSession metadata after playback starts
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: 'Wildcat 91.9',
+            artist: 'Listen Live!',
+            album: 'You Belong!',
+            artwork: [
+              {
+                src: this.shadowRoot.querySelector('.audio-img').src,
+                sizes: '300x300',
+                type: 'image/png'
+              }
+            ]
+          });
+
+          navigator.mediaSession.setActionHandler('play', () => {
+            audio.play();
+            bars.forEach(bar => bar.style.animationPlayState = 'running');
+          });
+
+          navigator.mediaSession.setActionHandler('pause', () => {
+            audio.pause();
+            bars.forEach(bar => bar.style.animationPlayState = 'paused');
+          });
+        }
       } else {
         audio.pause();
         bars.forEach(bar => bar.style.animationPlayState = 'paused');
       }
     });
-
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'Wildcat 91.9',
-        artist: 'Listen Live!',
-        album: 'You Belong!',
-        artwork: [
-          { src: this.shadowRoot.querySelector('.audio-img').src, sizes: '300x300', type: 'image/png' }
-        ]
-      });
-
-      navigator.mediaSession.setActionHandler('play', () => {
-        audio.play();
-        bars.forEach(bar => bar.style.animationPlayState = 'running');
-      });
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        audio.pause();
-        bars.forEach(bar => bar.style.animationPlayState = 'paused');
-      });
-    }
   }
 }
 
