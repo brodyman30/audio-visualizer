@@ -68,7 +68,7 @@ class AudioVisualizerMobile extends HTMLElement {
         <div class="visualizer" id="visualizer-right">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
+        <audio id="audio" src="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one" crossorigin="anonymous"></audio>
       </div>
     `;
 
@@ -77,12 +77,11 @@ class AudioVisualizerMobile extends HTMLElement {
     const bars = this.shadowRoot.querySelectorAll('.bar');
     const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
-    const audio = document.getElementById('audio');
-    const audioCtx = new AudioContext();
-    const source = audioCtx.createMediaElementSource(audio);
-    source.connect(audioCtx.destination);
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 64;
+
+    const source = audioCtx.createMediaElementSource(audio);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
 
@@ -96,12 +95,20 @@ class AudioVisualizerMobile extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        console.log([...dataArray]); // ✅ Logs frequency data
+        console.log([...dataArray]); // Logs frequency data
+
+        const binsPerBar = Math.floor(bufferLength / bars.length);
         bars.forEach((bar, i) => {
-          const value = dataArray[i] || 0;
-          const scale = Math.max(value / 128, 0.3);
+          let sum = 0;
+          for (let j = 0; j < binsPerBar; j++) {
+            const index = i * binsPerBar + j;
+            sum += dataArray[index] || 0;
+          }
+          const avg = sum / binsPerBar;
+          const scale = Math.max(avg / 128, 0.3);
           bar.style.transform = `scaleY(${scale})`;
         });
+
         requestAnimationFrame(loop);
       }
 
@@ -110,9 +117,9 @@ class AudioVisualizerMobile extends HTMLElement {
 
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'Wildcat 91.9',
-        artist: 'You Belong!',
-        album: '',
+        title: 'BBC Radio 1',
+        artist: 'Live Stream',
+        album: 'Visualizer Test',
         artwork: [
           {
             src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
