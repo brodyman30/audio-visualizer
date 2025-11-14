@@ -1,4 +1,4 @@
-class AudioVisualizerMobile extends HTMLElement {
+class AudioVisualizer extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -15,25 +15,23 @@ class AudioVisualizerMobile extends HTMLElement {
           height: 100%;
         }
 
-        .player-wrapper {
+        .container {
           display: flex;
-          flex-direction: row;
           align-items: center;
-          justify-content: center;
           gap: 16px;
         }
 
-        .audio-player {
+        .cover {
           width: 150px;
           height: 150px;
           cursor: pointer;
         }
 
-        .audio-img {
+        .cover img {
           width: 100%;
           height: 100%;
           border-radius: 12px;
-          object-fit: contain;
+          object-fit: cover;
         }
 
         .visualizer {
@@ -58,22 +56,22 @@ class AudioVisualizerMobile extends HTMLElement {
         }
       </style>
 
-      <div class="player-wrapper">
+      <div class="container">
         <div class="visualizer" id="visualizer-left">
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          ${'<div class="bar"></div>'.repeat(5)}
         </div>
-        <div class="audio-player" id="coverImage">
-          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" class="audio-img" />
+        <div class="cover" id="cover">
+          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
         </div>
         <div class="visualizer" id="visualizer-right">
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          ${'<div class="bar"></div>'.repeat(5)}
         </div>
         <audio id="audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" crossorigin="anonymous"></audio>
       </div>
     `;
 
-    const coverImage = this.shadowRoot.getElementById('coverImage');
     const audio = this.shadowRoot.getElementById('audio');
+    const cover = this.shadowRoot.getElementById('cover');
     const bars = this.shadowRoot.querySelectorAll('.bar');
     const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
@@ -89,20 +87,18 @@ class AudioVisualizerMobile extends HTMLElement {
     const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
-    function animateVisualizer() {
+    function animate() {
       if (isAnimating) return;
       isAnimating = true;
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        console.log([...dataArray]); // Logs frequency data
-
         const binsPerBar = Math.floor(bufferLength / bars.length);
+
         bars.forEach((bar, i) => {
           let sum = 0;
           for (let j = 0; j < binsPerBar; j++) {
-            const index = i * binsPerBar + j;
-            sum += dataArray[index] || 0;
+            sum += dataArray[i * binsPerBar + j] || 0;
           }
           const avg = sum / binsPerBar;
           const scale = Math.max(avg / 128, 0.3);
@@ -115,38 +111,12 @@ class AudioVisualizerMobile extends HTMLElement {
       loop();
     }
 
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'BBC Radio 1',
-        artist: 'Live Stream',
-        album: 'Visualizer Test',
-        artwork: [
-          {
-            src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
-            sizes: '300x300',
-            type: 'image/png'
-          }
-        ]
-      });
-
-      navigator.mediaSession.setActionHandler('play', () => {
-        audio.play();
-        audioCtx.resume();
-        visualizers.forEach(v => v.style.display = 'flex');
-        animateVisualizer();
-      });
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        audio.pause();
-      });
-    }
-
-    coverImage.addEventListener('click', () => {
+    cover.addEventListener('click', () => {
       if (audio.paused) {
         audio.play();
         audioCtx.resume();
         visualizers.forEach(v => v.style.display = 'flex');
-        animateVisualizer();
+        animate();
       } else {
         audio.pause();
       }
@@ -154,4 +124,4 @@ class AudioVisualizerMobile extends HTMLElement {
   }
 }
 
-customElements.define('test-visualizer', AudioVisualizerMobile);
+customElements.define('test-visualizer', AudioVisualizer);
