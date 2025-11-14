@@ -75,7 +75,7 @@ class AudioVisualizer extends HTMLElement {
 
     const audioCtx = new AudioContext();
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 64;
+    analyser.fftSize = 256;
 
     const source = audioCtx.createMediaElementSource(audio);
     source.connect(audioCtx.destination);
