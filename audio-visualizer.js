@@ -11,19 +11,23 @@ class AudioVisualizer extends HTMLElement {
           display: flex;
           align-items: center;
           gap: 16px;
+          min-height: 150px;
+
         }
 
         .cover {
           width: 250px;
           height: 250px;
           cursor: pointer;
+          flex-shrink: 0;
+
         }
 
         .cover img {
           width: 100%;
           height: 100%;
           border-radius: 12px;
-          object-fit: contain;
+          object-fit: cover;
         }
 
         .visualizer {
