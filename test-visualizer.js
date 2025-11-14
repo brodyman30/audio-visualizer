@@ -45,13 +45,13 @@ class TestVisualizer extends HTMLElement {
 
       <div class="container">
         <div class="visualizer" id="visualizer-left">
-          ${'<div class="bar"></div>'.repeat(5)}
+          ${'<div class="bar"></div>'.repeat(8)}
         </div>
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
         </div>
         <div class="visualizer" id="visualizer-right">
-          ${'<div class="bar"></div>'.repeat(5)}
+          ${'<div class="bar"></div>'.repeat(8)}
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
       </div>
