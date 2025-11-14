@@ -77,7 +77,6 @@ class AudioVisualizerMobile extends HTMLElement {
     const bars = this.shadowRoot.querySelectorAll('.bar');
     const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
-    // Setup Web Audio API
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaElementSource(audio);
     const analyser = audioCtx.createAnalyser();
@@ -87,18 +86,25 @@ class AudioVisualizerMobile extends HTMLElement {
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
+    let isAnimating = false;
 
     function animateVisualizer() {
-      analyser.getByteFrequencyData(dataArray);
-      bars.forEach((bar, i) => {
-        const value = dataArray[i] || 0;
-        const scale = Math.max(value / 128, 0.3);
-        bar.style.transform = `scaleY(${scale})`;
-      });
-      requestAnimationFrame(animateVisualizer);
+      if (isAnimating) return;
+      isAnimating = true;
+
+      function loop() {
+        analyser.getByteFrequencyData(dataArray);
+        bars.forEach((bar, i) => {
+          const value = dataArray[i] || 0;
+          const scale = Math.max(value / 128, 0.3);
+          bar.style.transform = `scaleY(${scale})`;
+        });
+        requestAnimationFrame(loop);
+      }
+
+      loop();
     }
 
-    // MediaSession setup (only once)
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'Wildcat 91.9',
@@ -114,8 +120,6 @@ class AudioVisualizerMobile extends HTMLElement {
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
-        audio.src = audio.src.split('?')[0] + '?t=' + Date.now();
-        audio.load();
         audio.play();
         audioCtx.resume();
         visualizers.forEach(v => v.style.display = 'flex');
@@ -127,11 +131,8 @@ class AudioVisualizerMobile extends HTMLElement {
       });
     }
 
-    // Click to play/pause
     coverImage.addEventListener('click', () => {
       if (audio.paused) {
-        audio.src = audio.src.split('?')[0] + '?t=' + Date.now();
-        audio.load();
         audio.play();
         audioCtx.resume();
         visualizers.forEach(v => v.style.display = 'flex');
