@@ -15,25 +15,25 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
         }
 
-        .player-wrapper {
+        .container {
           display: flex;
-          flex-direction: row;
           align-items: center;
           justify-content: center;
           gap: 16px;
         }
 
-        .audio-player {
+        .cover {
           width: 250px;
           height: 250px;
+          flex-shrink: 0;
           cursor: pointer;
         }
 
-        .audio-img {
+        .cover img {
           width: 100%;
           height: 100%;
           border-radius: 12px;
-          object-fit: contain;
+          object-fit: cover;
         }
 
         .visualizer {
@@ -49,7 +49,7 @@ class AudioVisualizer extends HTMLElement {
           height: 60px;
           background: linear-gradient(to top, #8262a9, #fdc259);
           border-radius: 3px;
-          transform: scaleY(0.3);
+          transform: scaleY(1);
         }
       </style>
 
@@ -78,8 +78,8 @@ class AudioVisualizer extends HTMLElement {
     analyser.fftSize = 64;
 
     const source = audioCtx.createMediaElementSource(audio);
-    source.connect(audioCtx.destination); // 🔊 sound output
-    source.connect(analyser);             // 📊 visualizer input
+    source.connect(audioCtx.destination);
+    source.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
@@ -100,7 +100,7 @@ class AudioVisualizer extends HTMLElement {
             sum += dataArray[i * binsPerBar + j] || 0;
           }
           const avg = sum / binsPerBar;
-          const scale = Math.max(avg / 128, 0.3);
+          const scale = Math.max(avg / 128, 0.5); // raised floor
           bar.style.transform = `scaleY(${scale})`;
         });
 
@@ -112,7 +112,7 @@ class AudioVisualizer extends HTMLElement {
 
     cover.addEventListener('click', () => {
       if (audio.paused) {
-        audio.load();
+        audio.load(); // ⏩ jump to live edge
         audio.play();
         audioCtx.resume();
         visualizers.forEach(v => v.style.display = 'flex');
