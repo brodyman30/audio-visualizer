@@ -77,8 +77,10 @@ class AudioVisualizerMobile extends HTMLElement {
     const bars = this.shadowRoot.querySelectorAll('.bar');
     const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audio = document.getElementById('audio');
+    const audioCtx = new AudioContext();
     const source = audioCtx.createMediaElementSource(audio);
+    source.connect(audioCtx.destination);
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 64;
     source.connect(analyser);
