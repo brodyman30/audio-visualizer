@@ -68,8 +68,8 @@ class TestVisualizer extends HTMLElement {
     analyser.fftSize = 64;
 
     const source = audioCtx.createMediaElementSource(audio);
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
+    source.connect(audioCtx.destination); // 🔊 sound output
+    source.connect(analyser);             // 📊 visualizer input
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
