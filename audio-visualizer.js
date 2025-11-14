@@ -118,6 +118,7 @@ class AudioVisualizer extends HTMLElement {
         animate();
       } else {
         audio.pause();
+        resetBars();
       }
     });
   }
