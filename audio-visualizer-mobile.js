@@ -19,7 +19,7 @@ class AudioVisualizerMobile extends HTMLElement {
           display: flex;
           align-items: center;
           justify-content: center;
-        
+          gap: 16px;
         }
 
         .cover {
@@ -33,7 +33,7 @@ class AudioVisualizerMobile extends HTMLElement {
           width: 100%;
           height: 100%;
           border-radius: 12px;
-          object-fit: contain;
+          object-fit: cover;
         }
 
         .visualizer {
@@ -73,21 +73,15 @@ class AudioVisualizerMobile extends HTMLElement {
     const rightBars = this.shadowRoot.querySelectorAll('#visualizer-right .bar');
     const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
-    const audioCtx = new AudioContext();
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 64;
-
-    const source = audioCtx.createMediaElementSource(audio);
-    source.connect(audioCtx.destination);
-    source.connect(analyser);
-
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    let audioCtx, analyser, source;
     let isAnimating = false;
 
     function animate() {
       if (isAnimating) return;
       isAnimating = true;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
@@ -100,7 +94,7 @@ class AudioVisualizerMobile extends HTMLElement {
             sum += dataArray[i * binsPerBar + j] || 0;
           }
           const avg = sum / binsPerBar;
-          const scale = Math.max(avg / 128, 0.5); // raised floor
+          const scale = Math.max(avg / 128, 0.5);
           bar.style.transform = `scaleY(${scale})`;
         });
 
@@ -111,6 +105,16 @@ class AudioVisualizerMobile extends HTMLElement {
     }
 
     cover.addEventListener('click', () => {
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+
+        source = audioCtx.createMediaElementSource(audio);
+        source.connect(audioCtx.destination);
+        source.connect(analyser);
+      }
+
       if (audio.paused) {
         audio.load(); // ⏩ jump to live edge
         audio.play();
