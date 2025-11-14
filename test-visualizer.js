@@ -40,10 +40,7 @@ class TestVisualizer extends HTMLElement {
           background: linear-gradient(to top, #8262a9, #fdc259);
           border-radius: 3px;
           transform: scaleY(0.3);
-        }
-
-        audio {
-          display: none;
+      
         }
       </style>
 
