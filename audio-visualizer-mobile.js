@@ -116,7 +116,6 @@ class AudioVisualizerMobile extends HTMLElement {
       }
 
       if (audio.paused) {
-        audio.load(); // ⏩ jump to live edge
         audio.play();
         audioCtx.resume();
         visualizers.forEach(v => v.style.display = 'flex');
