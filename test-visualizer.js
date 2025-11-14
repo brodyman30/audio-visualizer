@@ -42,9 +42,7 @@ class TestVisualizer extends HTMLElement {
           transform: scaleY(0.3);
         }
 
-        audio {
-          display: none;
-        }
+    
       </style>
 
       <div class="container">
