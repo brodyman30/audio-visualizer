@@ -1,4 +1,4 @@
-class AudioVisualizer extends HTMLElement {
+class AudioVisualizerMobile extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
