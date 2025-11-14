@@ -83,14 +83,13 @@ class AudioVisualizerMobile extends HTMLElement {
       </div>
     `;
 
-    const coverImage = this.shadowRoot.getElementById('coverImage');
-    const audio = this.shadowRoot.getElementById('audio');
-    const bars = this.shadowRoot.querySelectorAll('.bar');
-    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
-
     coverImage.addEventListener('click', () => {
       if (audio.paused) {
+        // Force reload to jump to live edge
+        audio.src = audio.src;
+        audio.load();
         audio.play();
+
         visualizers.forEach(v => v.style.display = 'flex');
         bars.forEach(bar => bar.style.animationPlayState = 'running');
 
@@ -109,6 +108,8 @@ class AudioVisualizerMobile extends HTMLElement {
           });
 
           navigator.mediaSession.setActionHandler('play', () => {
+            audio.src = audio.src;
+            audio.load();
             audio.play();
             visualizers.forEach(v => v.style.display = 'flex');
             bars.forEach(bar => bar.style.animationPlayState = 'running');
@@ -127,4 +128,4 @@ class AudioVisualizerMobile extends HTMLElement {
   }
 }
 
-customElements.define('audio-visualizer-mobile', AudioVisualizerMobile);
+customElements.define('audio-visualizer', AudioVisualizerMobile);
