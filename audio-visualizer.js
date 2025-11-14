@@ -7,23 +7,29 @@ class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.shadowRoot.innerHTML = `
       <style>
-        .container {
+        :host {
           display: flex;
+          justify-content: center;
           align-items: center;
-          gap: 16px;
-          min-height: 150px;
-
+          width: 100%;
+          height: 100%;
         }
 
-        .cover {
+        .player-wrapper {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+        }
+
+        .audio-player {
           width: 250px;
           height: 250px;
           cursor: pointer;
-          flex-shrink: 0;
-
         }
 
-        .cover img {
+        .audio-img {
           width: 100%;
           height: 100%;
           border-radius: 12px;
