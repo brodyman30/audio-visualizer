@@ -37,7 +37,7 @@ class AudioVisualizerMobile extends HTMLElement {
         }
 
         .visualizer {
-          display: none; /* 🔒 Hidden until clicked */
+          display: none;
           flex-direction: row;
           align-items: flex-end;
           justify-content: center;
@@ -82,6 +82,11 @@ class AudioVisualizerMobile extends HTMLElement {
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3"></audio>
       </div>
     `;
+
+    const coverImage = this.shadowRoot.getElementById('coverImage');
+    const audio = this.shadowRoot.getElementById('audio');
+    const bars = this.shadowRoot.querySelectorAll('.bar');
+    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
     coverImage.addEventListener('click', () => {
       if (audio.paused) {
