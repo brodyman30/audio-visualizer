@@ -104,7 +104,7 @@ class AudioVisualizerMobile extends HTMLElement {
       loop();
     }
 
-    cover.addEventListener('click', () => {
+    function handlePlay() {
       if (!audioCtx) {
         audioCtx = new AudioContext();
         analyser = audioCtx.createAnalyser();
@@ -116,14 +116,20 @@ class AudioVisualizerMobile extends HTMLElement {
       }
 
       if (audio.paused) {
-        audio.play();
-        audioCtx.resume();
-        visualizers.forEach(v => v.style.display = 'flex');
-        animate();
+        audio.play().then(() => {
+          audioCtx.resume();
+          visualizers.forEach(v => v.style.display = 'flex');
+          animate();
+        }).catch(err => {
+          console.warn('Playback failed:', err);
+        });
       } else {
         audio.pause();
       }
-    });
+    }
+
+    cover.addEventListener('click', handlePlay);
+    cover.addEventListener('touchstart', handlePlay);
   }
 }
 
