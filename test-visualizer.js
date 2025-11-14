@@ -1,4 +1,4 @@
-class AudioVisualizer extends HTMLElement {
+class TestVisualizer extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -7,14 +7,6 @@ class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.shadowRoot.innerHTML = `
       <style>
-        :host {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 100%;
-        }
-
         .container {
           display: flex;
           align-items: center;
@@ -38,7 +30,6 @@ class AudioVisualizer extends HTMLElement {
           display: none;
           flex-direction: row;
           align-items: flex-end;
-          justify-content: center;
           gap: 4px;
           height: 100px;
         }
@@ -57,14 +48,11 @@ class AudioVisualizer extends HTMLElement {
       </style>
 
       <div class="container">
-        <div class="visualizer" id="visualizer-left">
-          ${'<div class="bar"></div>'.repeat(5)}
+        <div class="visualizer" id="visualizer">
+          ${'<div class="bar"></div>'.repeat(10)}
         </div>
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
-        </div>
-        <div class="visualizer" id="visualizer-right">
-          ${'<div class="bar"></div>'.repeat(5)}
         </div>
         <audio id="audio" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" crossorigin="anonymous"></audio>
       </div>
@@ -73,9 +61,9 @@ class AudioVisualizer extends HTMLElement {
     const audio = this.shadowRoot.getElementById('audio');
     const cover = this.shadowRoot.getElementById('cover');
     const bars = this.shadowRoot.querySelectorAll('.bar');
-    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
+    const visualizer = this.shadowRoot.getElementById('visualizer');
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioCtx = new AudioContext();
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 64;
 
@@ -112,16 +100,12 @@ class AudioVisualizer extends HTMLElement {
     }
 
     cover.addEventListener('click', () => {
-      if (audio.paused) {
-        audio.play();
-        audioCtx.resume();
-        visualizers.forEach(v => v.style.display = 'flex');
-        animate();
-      } else {
-        audio.pause();
-      }
+      audio.play();
+      audioCtx.resume();
+      visualizer.style.display = 'flex';
+      animate();
     });
   }
 }
 
-customElements.define('test-visualizer', AudioVisualizer);
+customElements.define('test-visualizer', TestVisualizer);
