@@ -101,10 +101,14 @@ class TestVisualizer extends HTMLElement {
     }
 
     cover.addEventListener('click', () => {
-      audio.play();
-      audioCtx.resume();
-      visualizers.forEach(v => v.style.display = 'flex');
-      animate();
+      if (audio.paused) {
+        audio.play();
+        audioCtx.resume();
+        visualizers.forEach(v => v.style.display = 'flex');
+        animate();
+      } else {
+        audio.pause();
+      }
     });
   }
 }
