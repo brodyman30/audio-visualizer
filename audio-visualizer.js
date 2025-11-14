@@ -88,43 +88,41 @@ class AudioVisualizerMobile extends HTMLElement {
     const bars = this.shadowRoot.querySelectorAll('.bar');
     const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
 
-    coverImage.addEventListener('click', () => {
-      if (audio.paused) {
+coverImage.addEventListener('click', () => {
+  if (audio.paused) {
+    audio.play();
+    visualizers.forEach(v => v.style.display = 'flex');
+    bars.forEach(bar => bar.style.animationPlayState = 'running');
+
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Wildcat 91.9',
+        artist: 'Listen Live!',
+        album: 'You Belong!',
+        artwork: [
+          {
+            src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
+            sizes: '300x300',
+            type: 'image/png'
+          }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
         audio.play();
         visualizers.forEach(v => v.style.display = 'flex');
         bars.forEach(bar => bar.style.animationPlayState = 'running');
+      });
 
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: 'Wildcat 91.9',
-            artist: 'Listen Live!',
-            album: 'You Belong!',
-            artwork: [
-              {
-                src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
-                sizes: '300x300',
-                type: 'image/png'
-              }
-            ]
-          });
-
-          navigator.mediaSession.setActionHandler('play', () => {
-            audio.play();
-            visualizers.forEach(v => v.style.display = 'flex');
-            bars.forEach(bar => bar.style.animationPlayState = 'running');
-          });
-
-          navigator.mediaSession.setActionHandler('pause', () => {
-            audio.pause();
-            bars.forEach(bar => bar.style.animationPlayState = 'paused');
-          });
-        }
-      } else {
+      navigator.mediaSession.setActionHandler('pause', () => {
         audio.pause();
         bars.forEach(bar => bar.style.animationPlayState = 'paused');
-      }
-    });
+      });
+    }
+  } else {
+    audio.pause();
+    bars.forEach(bar => bar.style.animationPlayState = 'paused');
   }
-}
+});
 
 customElements.define('audio-visualizer', AudioVisualizerMobile);
