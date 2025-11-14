@@ -108,9 +108,9 @@ class AudioVisualizerMobile extends HTMLElement {
 
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'BBC Radio 1',
-        artist: 'Live Stream',
-        album: 'Visualizer Test',
+        title: 'Wildcat 91.9',
+        artist: 'You Belong!',
+        album: '',
         artwork: [
           {
             src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
