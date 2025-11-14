@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Audio Visualizer</title>
+  <title>Persistent Audio Player</title>
   <style>
-    /* 🔊 Floating Mute/Unmute Toggle */
+    /* 🔊 Floating mute/unmute toggle */
     #audio-toggle {
       position: fixed;
       bottom: 20px;
@@ -28,19 +28,17 @@
   </style>
 </head>
 <body>
-  <!-- ✅ Global audio element (persistent across pages) -->
-  <div id="audio-root">
-    <audio id="global-audio" src="https://s.radiowave.io/ksdb.mp3" autoplay loop crossorigin="anonymous"></audio>
-  </div>
+  <!-- ✅ Global audio element -->
+  <audio id="global-audio" src="https://s.radiowave.io/ksdb.mp3" autoplay loop crossorigin="anonymous"></audio>
 
   <!-- ✅ Floating mute/unmute toggle -->
   <div id="audio-toggle" title="Toggle Audio">🔊</div>
 
-  <!-- ✅ Your custom visualizer -->
+  <!-- ✅ Audio visualizer component -->
   <audio-visualizer></audio-visualizer>
 
   <script>
-    // ✅ Floating toggle logic
+    // 🔊 Mute/unmute toggle logic
     document.addEventListener('DOMContentLoaded', () => {
       const audio = document.getElementById('global-audio');
       const toggle = document.getElementById('audio-toggle');
@@ -54,7 +52,6 @@
 
       // Toggle mute/unmute
       toggle.addEventListener('click', () => {
-        if (!audio) return;
         audio.muted = !audio.muted;
         toggle.textContent = audio.muted ? '🔇' : '🔊';
       });
@@ -87,7 +84,7 @@
       });
     });
 
-    // ✅ Custom Element: AudioVisualizer
+    // 🎵 AudioVisualizer component
     class AudioVisualizer extends HTMLElement {
       constructor() {
         super();
@@ -156,7 +153,7 @@
           </div>
         `;
 
-        const audio = document.getElementById('global-audio'); // ✅ Use global audio
+        const audio = document.getElementById('global-audio');
         const cover = this.shadowRoot.getElementById('cover');
         const leftBars = this.shadowRoot.querySelectorAll('#visualizer-left .bar');
         const rightBars = this.shadowRoot.querySelectorAll('#visualizer-right .bar');
@@ -226,7 +223,6 @@
           }
         });
 
-        // ✅ Auto-resume visualizer if audio is already playing
         if (!audio.paused) {
           visualizers.forEach(v => v.style.display = 'flex');
           animate();
@@ -238,5 +234,3 @@
   </script>
 </body>
 </html>
-
-customElements.define('audio-visualizer', AudioVisualizer);
