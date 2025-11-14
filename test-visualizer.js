@@ -41,8 +41,6 @@ class TestVisualizer extends HTMLElement {
           border-radius: 3px;
           transform: scaleY(0.3);
         }
-
-    
       </style>
 
       <div class="container">
@@ -55,7 +53,7 @@ class TestVisualizer extends HTMLElement {
         <div class="visualizer" id="visualizer-right">
           ${'<div class="bar"></div>'.repeat(5)}
         </div>
-        <audio id="audio" src="https://file-examples.com/storage/fe5b6e1e6f0e7b6e2a9b9c6/2017/11/file_example_MP3_700KB.mp3" crossorigin="anonymous" controls></audio>
+        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
       </div>
     `;
 
@@ -70,8 +68,8 @@ class TestVisualizer extends HTMLElement {
     analyser.fftSize = 64;
 
     const source = audioCtx.createMediaElementSource(audio);
-    source.connect(audioCtx.destination);
-    source.connect(analyser);
+    source.connect(audioCtx.destination); // 🔊 sound output
+    source.connect(analyser);             // 📊 visualizer input
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
@@ -83,9 +81,10 @@ class TestVisualizer extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        const binsPerBar = Math.floor(bufferLength / (leftBars.length + rightBars.length));
+        const allBars = [...leftBars, ...rightBars];
+        const binsPerBar = Math.floor(bufferLength / allBars.length);
 
-        [...leftBars, ...rightBars].forEach((bar, i) => {
+        allBars.forEach((bar, i) => {
           let sum = 0;
           for (let j = 0; j < binsPerBar; j++) {
             sum += dataArray[i * binsPerBar + j] || 0;
