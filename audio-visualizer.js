@@ -92,15 +92,14 @@ class AudioVisualizer extends HTMLElement {
       function loop() {
         analyser.getByteFrequencyData(dataArray);
         const allBars = [...leftBars, ...rightBars];
-        const binsPerBar = Math.floor(bufferLength / allBars.length);
+        const totalBars = allBars.length;
+        const maxIndex = bufferLength - 1;
 
         allBars.forEach((bar, i) => {
-          let sum = 0;
-          for (let j = 0; j < binsPerBar; j++) {
-            sum += dataArray[i * binsPerBar + j] || 0;
-          }
-          const avg = sum / binsPerBar;
-          const scale = Math.max(avg / 128, 0.5); // raised floor
+          const normalizedIndex = i / totalBars;
+          const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
+          const value = dataArray[logIndex] || 0;
+          const scale = Math.max(value / 128, 0.5);
           bar.style.transform = `scaleY(${scale})`;
         });
 
