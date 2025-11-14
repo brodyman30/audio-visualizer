@@ -68,7 +68,7 @@ class AudioVisualizerMobile extends HTMLElement {
         <div class="visualizer" id="visualizer-right">
           <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3"></audio>
+        <audio id="audio" src="https://stream.live.vc.bbcmedia.co.uk/bbc_radio_one" crossorigin="anonymous"></audio>
       </div>
     `;
 
@@ -94,7 +94,7 @@ class AudioVisualizerMobile extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        console.log([...dataArray]);
+        console.log([...dataArray]); // ✅ Logs frequency data
         bars.forEach((bar, i) => {
           const value = dataArray[i] || 0;
           const scale = Math.max(value / 128, 0.3);
@@ -108,9 +108,9 @@ class AudioVisualizerMobile extends HTMLElement {
 
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'Wildcat 91.9',
-        artist: 'Listen Live!',
-        album: 'You Belong!',
+        title: 'BBC Radio 1',
+        artist: 'Live Stream',
+        album: 'Visualizer Test',
         artwork: [
           {
             src: 'https://static.wixstatic.com/media/eaaa6a_770de7258bcd43a688ec5d83a065e911~mv2.png',
