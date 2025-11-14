@@ -94,6 +94,7 @@ class AudioVisualizerMobile extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
+        console.log([...dataArray]);
         bars.forEach((bar, i) => {
           const value = dataArray[i] || 0;
           const scale = Math.max(value / 128, 0.3);
