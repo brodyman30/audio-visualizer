@@ -1,20 +1,7 @@
-class AudioVisualizerMobile extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
-
+class AudioVisualizer extends HTMLElement {
   connectedCallback() {
-    this.shadowRoot.innerHTML = `
+    this.innerHTML = `
       <style>
-        :host {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 100%;
-        }
-
         .container {
           display: flex;
           align-items: center;
@@ -23,8 +10,8 @@ class AudioVisualizerMobile extends HTMLElement {
         }
 
         .cover {
-          width: 150px;
-          height: 150px;
+          width: 250px;
+          height: 250px;
           flex-shrink: 0;
           cursor: pointer;
         }
@@ -55,46 +42,51 @@ class AudioVisualizerMobile extends HTMLElement {
 
       <div class="container">
         <div class="visualizer" id="visualizer-left">
-          ${'<div class="bar"></div>'.repeat(6)}
+          ${'<div class="bar"></div>'.repeat(8)}
         </div>
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
         </div>
         <div class="visualizer" id="visualizer-right">
-          ${'<div class="bar"></div>'.repeat(6)}
+          ${'<div class="bar"></div>'.repeat(8)}
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
       </div>
     `;
 
-    const audio = this.shadowRoot.getElementById('audio');
-    const cover = this.shadowRoot.getElementById('cover');
-    const leftBars = this.shadowRoot.querySelectorAll('#visualizer-left .bar');
-    const rightBars = this.shadowRoot.querySelectorAll('#visualizer-right .bar');
-    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
+    const audio = this.querySelector('#audio');
+    const cover = this.querySelector('#cover');
+    const leftBars = this.querySelectorAll('#visualizer-left .bar');
+    const rightBars = this.querySelectorAll('#visualizer-right .bar');
+    const visualizers = this.querySelectorAll('.visualizer');
 
-    let audioCtx, analyser, source;
+    const audioCtx = new AudioContext();
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+
+    const source = audioCtx.createMediaElementSource(audio);
+    source.connect(audioCtx.destination);
+    source.connect(analyser);
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
     function animate() {
       if (isAnimating) return;
       isAnimating = true;
 
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
       function loop() {
         analyser.getByteFrequencyData(dataArray);
         const allBars = [...leftBars, ...rightBars];
-        const binsPerBar = Math.floor(bufferLength / allBars.length);
+        const totalBars = allBars.length;
+        const maxIndex = bufferLength - 1;
 
         allBars.forEach((bar, i) => {
-          let sum = 0;
-          for (let j = 0; j < binsPerBar; j++) {
-            sum += dataArray[i * binsPerBar + j] || 0;
-          }
-          const avg = sum / binsPerBar;
-          const scale = Math.max(avg / 128, 0.5);
+          const normalizedIndex = i / totalBars;
+          const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
+          const value = dataArray[logIndex] || 0;
+          const scale = Math.max(value / 128, 0.5);
           bar.style.transform = `scaleY(${scale})`;
         });
 
@@ -104,33 +96,26 @@ class AudioVisualizerMobile extends HTMLElement {
       loop();
     }
 
-    function handlePlay() {
-      if (!audioCtx) {
-        audioCtx = new AudioContext();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64;
-
-        source = audioCtx.createMediaElementSource(audio);
-        source.connect(audioCtx.destination);
-        source.connect(analyser);
-      }
-
-      if (audio.paused) {
-        audio.play().then(() => {
-          audioCtx.resume();
-          visualizers.forEach(v => v.style.display = 'flex');
-          animate();
-        }).catch(err => {
-          console.warn('Playback failed:', err);
-        });
-      } else {
-        audio.pause();
-      }
+    function resetBars() {
+      const allBars = [...leftBars, ...rightBars];
+      allBars.forEach(bar => {
+        bar.style.transform = 'scaleY(0.5)';
+      });
     }
 
-    cover.addEventListener('click', handlePlay);
-    cover.addEventListener('touchstart', handlePlay);
+    cover.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.load();
+        audio.play();
+        audioCtx.resume();
+        visualizers.forEach(v => v.style.display = 'flex');
+        animate();
+      } else {
+        audio.pause();
+        resetBars();
+      }
+    });
   }
 }
 
-customElements.define('audio-visualizer-mobile', AudioVisualizerMobile);
+customElements.define('test-visualizer', AudioVisualizer);
