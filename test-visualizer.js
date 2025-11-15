@@ -1,21 +1,18 @@
-class TestVisualizer extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
-
+class AudioVisualizer extends HTMLElement {
   connectedCallback() {
-    this.shadowRoot.innerHTML = `
+    this.innerHTML = `
       <style>
         .container {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 16px;
         }
 
         .cover {
-          width: 150px;
-          height: 150px;
+          width: 250px;
+          height: 250px;
+          flex-shrink: 0;
           cursor: pointer;
         }
 
@@ -39,7 +36,7 @@ class TestVisualizer extends HTMLElement {
           height: 60px;
           background: linear-gradient(to top, #8262a9, #fdc259);
           border-radius: 3px;
-          transform: scaleY(0.3);
+          transform: scaleY(1);
         }
       </style>
 
@@ -57,19 +54,19 @@ class TestVisualizer extends HTMLElement {
       </div>
     `;
 
-    const audio = this.shadowRoot.getElementById('audio');
-    const cover = this.shadowRoot.getElementById('cover');
-    const leftBars = this.shadowRoot.querySelectorAll('#visualizer-left .bar');
-    const rightBars = this.shadowRoot.querySelectorAll('#visualizer-right .bar');
-    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
+    const audio = this.querySelector('#audio');
+    const cover = this.querySelector('#cover');
+    const leftBars = this.querySelectorAll('#visualizer-left .bar');
+    const rightBars = this.querySelectorAll('#visualizer-right .bar');
+    const visualizers = this.querySelectorAll('.visualizer');
 
     const audioCtx = new AudioContext();
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 64;
+    analyser.fftSize = 256;
 
     const source = audioCtx.createMediaElementSource(audio);
-    source.connect(audioCtx.destination); // 🔊 sound output
-    source.connect(analyser);             // 📊 visualizer input
+    source.connect(audioCtx.destination);
+    source.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
@@ -82,15 +79,14 @@ class TestVisualizer extends HTMLElement {
       function loop() {
         analyser.getByteFrequencyData(dataArray);
         const allBars = [...leftBars, ...rightBars];
-        const binsPerBar = Math.floor(bufferLength / allBars.length);
+        const totalBars = allBars.length;
+        const maxIndex = bufferLength - 1;
 
         allBars.forEach((bar, i) => {
-          let sum = 0;
-          for (let j = 0; j < binsPerBar; j++) {
-            sum += dataArray[i * binsPerBar + j] || 0;
-          }
-          const avg = sum / binsPerBar;
-          const scale = Math.max(avg / 128, 0.3);
+          const normalizedIndex = i / totalBars;
+          const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
+          const value = dataArray[logIndex] || 0;
+          const scale = Math.max(value / 128, 0.5);
           bar.style.transform = `scaleY(${scale})`;
         });
 
@@ -98,6 +94,13 @@ class TestVisualizer extends HTMLElement {
       }
 
       loop();
+    }
+
+    function resetBars() {
+      const allBars = [...leftBars, ...rightBars];
+      allBars.forEach(bar => {
+        bar.style.transform = 'scaleY(0.5)';
+      });
     }
 
     cover.addEventListener('click', () => {
@@ -109,9 +112,10 @@ class TestVisualizer extends HTMLElement {
         animate();
       } else {
         audio.pause();
+        resetBars();
       }
     });
   }
 }
 
-customElements.define('test-visualizer', TestVisualizer);
+customElements.define('test-visualizer', AudioVisualizer);
