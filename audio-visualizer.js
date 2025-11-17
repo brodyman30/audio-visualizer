@@ -13,8 +13,8 @@ class AudioVisualizer extends HTMLElement {
           position: absolute;
           top: 58%;
           left: 50%;
-          width: 150px;
-          height: 150px;
+          width: 250px;
+          height: 250px;
           z-index: 1;
           cursor: pointer;
           transform: translate(-50%, -50%);
