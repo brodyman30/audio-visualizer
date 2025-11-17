@@ -28,16 +28,17 @@ class AudioVisualizer extends HTMLElement {
 
         .visualizer-circle {
           position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 220px;
-          height: 220px;
-          transform: translate(-50%, -50%);
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
           pointer-events: none;
         }
 
         .bar {
           position: absolute;
+          top: 50%;
+          left: 50%;
           width: 4px;
           height: 40px;
           background: linear-gradient(to top, #8262a9, #fdc259);
@@ -71,16 +72,10 @@ class AudioVisualizer extends HTMLElement {
     const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
-    // Position bars radially like spokes
+    // Position bars radially from center
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
-      const angleRad = (angleDeg * Math.PI) / 180;
-      const radius = 90;
-      const x = Math.cos(angleRad) * radius;
-      const y = Math.sin(angleRad) * radius;
-      bar.style.left = `${110 + x}px`;
-      bar.style.top = `${110 + y}px`;
-      bar.style.transform = `rotate(${angleDeg}deg) scaleY(0.5)`;
+      bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(0.5)`;
     });
 
     function animate() {
@@ -97,7 +92,7 @@ class AudioVisualizer extends HTMLElement {
           const value = dataArray[logIndex] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
-          bar.style.transform = `rotate(${angleDeg}deg) scaleY(${scale})`;
+          bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(${scale})`;
         });
 
         requestAnimationFrame(loop);
@@ -109,7 +104,7 @@ class AudioVisualizer extends HTMLElement {
     function resetBars() {
       bars.forEach((bar, i) => {
         const angleDeg = (i / bars.length) * 360;
-        bar.style.transform = `rotate(${angleDeg}deg) scaleY(0.5)`;
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(0.5)`;
       });
     }
 
