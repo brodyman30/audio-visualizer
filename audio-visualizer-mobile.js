@@ -4,8 +4,8 @@ class AudioVisualizer extends HTMLElement {
       <style>
         .container {
           position: relative;
-          width: 200px;
-          height: 200px;
+          width: 220px;
+          height: 220px;
         }
 
         .cover {
@@ -30,8 +30,8 @@ class AudioVisualizer extends HTMLElement {
           position: absolute;
           top: 50%;
           left: 50%;
-          width: 200px;
-          height: 200px;
+          width: 220px;
+          height: 220px;
           transform: translate(-50%, -50%);
           pointer-events: none;
         }
@@ -41,7 +41,7 @@ class AudioVisualizer extends HTMLElement {
           width: 4px;
           height: 40px;
           background: linear-gradient(to top, #8262a9, #fdc259);
-          transform-origin: bottom center;
+          transform-origin: center bottom;
         }
       </style>
 
@@ -71,15 +71,16 @@ class AudioVisualizer extends HTMLElement {
     const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
-    // Position bars in a circle
+    // Position bars radially
     bars.forEach((bar, i) => {
-      const angle = (i / bars.length) * 2 * Math.PI;
+      const angleDeg = (i / bars.length) * 360;
+      const angleRad = (angleDeg * Math.PI) / 180;
       const radius = 90;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      bar.style.left = `${100 + x}px`;
-      bar.style.top = `${100 + y}px`;
-      bar.style.transform = `rotate(${angle}rad) scaleY(0.5)`;
+      const x = Math.cos(angleRad) * radius;
+      const y = Math.sin(angleRad) * radius;
+      bar.style.left = `${110 + x}px`;
+      bar.style.top = `${110 + y}px`;
+      bar.style.transform = `rotate(${angleDeg}deg) scaleY(0.5)`;
     });
 
     function animate() {
@@ -95,8 +96,8 @@ class AudioVisualizer extends HTMLElement {
           const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
           const value = dataArray[logIndex] || 0;
           const scale = Math.max(value / 128, 0.5);
-          const angle = (i / bars.length) * 2 * Math.PI;
-          bar.style.transform = `rotate(${angle}rad) scaleY(${scale})`;
+          const angleDeg = (i / bars.length) * 360;
+          bar.style.transform = `rotate(${angleDeg}deg) scaleY(${scale})`;
         });
 
         requestAnimationFrame(loop);
@@ -107,8 +108,8 @@ class AudioVisualizer extends HTMLElement {
 
     function resetBars() {
       bars.forEach((bar, i) => {
-        const angle = (i / bars.length) * 2 * Math.PI;
-        bar.style.transform = `rotate(${angle}rad) scaleY(0.5)`;
+        const angleDeg = (i / bars.length) * 360;
+        bar.style.transform = `rotate(${angleDeg}deg) scaleY(0.5)`;
       });
     }
 
