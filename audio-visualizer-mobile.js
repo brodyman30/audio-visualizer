@@ -86,12 +86,10 @@ class AudioVisualizer extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        const maxIndex = bufferLength - 1;
 
         bars.forEach((bar, i) => {
-          const normalizedIndex = i / (bars.length - 1);
-          const curvedIndex = Math.pow(normalizedIndex, 1.5); // tweak curve here
-          const binIndex = Math.min(Math.floor(curvedIndex * maxIndex), maxIndex);
+          // LINEAR mapping, each bar gets its own frequency bin
+          const binIndex = Math.floor(i / bars.length * bufferLength);
           const value = dataArray[binIndex] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
@@ -132,3 +130,4 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
