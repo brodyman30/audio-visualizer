@@ -88,9 +88,12 @@ class AudioVisualizer extends HTMLElement {
         analyser.getByteFrequencyData(dataArray);
 
         bars.forEach((bar, i) => {
-          // LINEAR mapping, each bar gets its own frequency bin
-          const binIndex = Math.floor(i / bars.length * bufferLength);
-          const value = dataArray[binIndex] || 0;
+          // MIRROR method: map bins so each bar gets mirrored lower freq if needed
+          let binIdx = Math.floor(i / bars.length * bufferLength);
+          if (binIdx >= bufferLength / 2) {
+            binIdx = bufferLength - binIdx - 1; // mirror to lower bins
+          }
+          const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
           bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
