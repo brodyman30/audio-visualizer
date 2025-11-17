@@ -52,7 +52,7 @@ class AudioVisualizer extends HTMLElement {
 
       <div class="container">
         <div class="visualizer-circle" id="visualizer-circle">
-          ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
+          ${Array.from({ length: 72 }, () => '<div class="bar"></div>').join('')}
         </div>
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
