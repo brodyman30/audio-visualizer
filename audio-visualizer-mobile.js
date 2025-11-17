@@ -6,16 +6,17 @@ class AudioVisualizer extends HTMLElement {
           position: relative;
           width: 220px;
           height: 220px;
-          place-items: center;
         }
 
         .cover {
-          top: 58%;
+          position: absolute;
+          top: 50%;
           left: 50%;
           width: 150px;
           height: 150px;
           z-index: 1;
           cursor: pointer;
+          transform: translate(-50%, -50%);
         }
 
         .cover img {
