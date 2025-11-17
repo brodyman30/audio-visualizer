@@ -45,6 +45,7 @@ class AudioVisualizer extends HTMLElement {
           transform-origin: center bottom;
           opacity: 0;
           transition: opacity 0.3s ease;
+          border-radius: 50px;
         }
       </style>
 
@@ -133,4 +134,5 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
