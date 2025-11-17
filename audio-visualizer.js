@@ -1,32 +1,23 @@
 class AudioVisualizer extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
-
   connectedCallback() {
-    this.shadowRoot.innerHTML = `
+    this.innerHTML = `
       <style>
-        :host {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 100%;
-        }
-
         .container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
+          position: relative;
+          width: 220px;
+          height: 220px;
+          overflow: visible;
         }
 
         .cover {
-          width: 250px;
-          height: 250px;
-          flex-shrink: 0;
+          position: absolute;
+          top: 58%;
+          left: 50%;
+          width: 150px;
+          height: 150px;
+          z-index: 1;
           cursor: pointer;
+          transform: translate(-50%, -50%);
         }
 
         .cover img {
@@ -36,43 +27,43 @@ class AudioVisualizer extends HTMLElement {
           object-fit: contain;
         }
 
-        .visualizer {
-          display: none;
-          flex-direction: row;
-          align-items: flex-end;
-          gap: 4px;
-          height: 100px;
+        .visualizer-circle {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
         }
 
         .bar {
-          width: 6px;
-          height: 60px;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 4px;
+          height: 30px;
           background: linear-gradient(to top, #8262a9, #fdc259);
-          border-radius: 3px;
-          transform: scaleY(1);
+          transform-origin: center bottom;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          border-radius: 50px;
         }
       </style>
 
       <div class="container">
-        <div class="visualizer" id="visualizer-left">
-          ${'<div class="bar"></div>'.repeat(8)}
+        <div class="visualizer-circle" id="visualizer-circle">
+          ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
         </div>
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
-        </div>
-        <div class="visualizer" id="visualizer-right">
-          ${'<div class="bar"></div>'.repeat(8)}
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
       </div>
     `;
 
-    const audio = this.shadowRoot.getElementById('audio');
-    const cover = this.shadowRoot.getElementById('cover');
-    const leftBars = this.shadowRoot.querySelectorAll('#visualizer-left .bar');
-    const rightBars = this.shadowRoot.querySelectorAll('#visualizer-right .bar');
-    const visualizers = this.shadowRoot.querySelectorAll('.visualizer');
-
+    const audio = this.querySelector('#audio');
+    const cover = this.querySelector('#cover');
+    const bars = this.querySelectorAll('#visualizer-circle .bar');
     const audioCtx = new AudioContext();
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
@@ -85,22 +76,29 @@ class AudioVisualizer extends HTMLElement {
     const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
+    // Position bars radially from center
+    bars.forEach((bar, i) => {
+      const angleDeg = (i / bars.length) * 360;
+      bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
+    });
+
     function animate() {
       if (isAnimating) return;
       isAnimating = true;
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        const allBars = [...leftBars, ...rightBars];
-        const totalBars = allBars.length;
-        const maxIndex = bufferLength - 1;
 
-        allBars.forEach((bar, i) => {
-          const normalizedIndex = i / totalBars;
-          const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
-          const value = dataArray[logIndex] || 0;
+        bars.forEach((bar, i) => {
+          // MIRROR method: map bins so each bar gets mirrored lower freq if needed
+          let binIdx = Math.floor(i / bars.length * bufferLength);
+          if (binIdx >= bufferLength / 2) {
+            binIdx = bufferLength - binIdx - 1; // mirror to lower bins
+          }
+          const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
-          bar.style.transform = `scaleY(${scale})`;
+          const angleDeg = (i / bars.length) * 360;
+          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
         });
 
         requestAnimationFrame(loop);
@@ -109,19 +107,31 @@ class AudioVisualizer extends HTMLElement {
       loop();
     }
 
+    function resetBars() {
+      bars.forEach((bar, i) => {
+        const angleDeg = (i / bars.length) * 360;
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
+      });
+    }
+
     cover.addEventListener('click', () => {
       if (audio.paused) {
-        audio.load(); // ⏩ jump to live edge
+        audio.load();
         audio.play();
         audioCtx.resume();
-        visualizers.forEach(v => v.style.display = 'flex');
+        bars.forEach(bar => {
+          bar.style.opacity = '1';
+        });
         animate();
       } else {
         audio.pause();
+        bars.forEach(bar => {
+          bar.style.opacity = '0';
+        });
         resetBars();
       }
     });
   }
 }
 
-customElements.define('audio-visualizer', AudioVisualizer);
+customElements.define('audio-visualizer-mobile', AudioVisualizer);
