@@ -43,8 +43,8 @@ class AudioVisualizer extends HTMLElement {
           height: 30px;
           background: linear-gradient(to top, #8262a9, #fdc259);
           transform-origin: center bottom;
+          opacity: 0;
           transition: opacity 0.3s ease;
-
         }
       </style>
 
@@ -77,7 +77,7 @@ class AudioVisualizer extends HTMLElement {
     // Position bars radially from center
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
-      bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(0.5)`;
+      bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
     function animate() {
@@ -86,7 +86,6 @@ class AudioVisualizer extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        const maxIndex = bufferLength - 1;
 
         bars.forEach((bar, i) => {
           const index = Math.floor((i / bars.length) * bufferLength);
@@ -105,10 +104,8 @@ class AudioVisualizer extends HTMLElement {
     function resetBars() {
       bars.forEach((bar, i) => {
         const angleDeg = (i / bars.length) * 360;
-        bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(0.5)`;
-
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
       });
-      
     }
 
     cover.addEventListener('click', () => {
@@ -116,12 +113,15 @@ class AudioVisualizer extends HTMLElement {
         audio.load();
         audio.play();
         audioCtx.resume();
-        bar.style.opacity = '1';
-
+        bars.forEach(bar => {
+          bar.style.opacity = '1';
+        });
         animate();
       } else {
         audio.pause();
-        bar.style.opacity = '0';
+        bars.forEach(bar => {
+          bar.style.opacity = '0';
+        });
         resetBars();
       }
     });
