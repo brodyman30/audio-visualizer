@@ -6,7 +6,8 @@ class AudioVisualizer extends HTMLElement {
           position: relative;
           width: 250px;
           height: 250px;
-          overflow: visible;
+          margin: 0 auto;
+
         }
 
         .cover {
