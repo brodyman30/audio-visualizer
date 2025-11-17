@@ -89,9 +89,10 @@ class AudioVisualizer extends HTMLElement {
         const maxIndex = bufferLength - 1;
 
         bars.forEach((bar, i) => {
-          const normalizedIndex = i / bars.length;
-          const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
-          const value = dataArray[logIndex] || 0;
+          const normalizedIndex = i / (bars.length - 1);
+          const curvedIndex = Math.pow(normalizedIndex, 1.5); // tweak curve here
+          const binIndex = Math.min(Math.floor(curvedIndex * maxIndex), maxIndex);
+          const value = dataArray[binIndex] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
           bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
