@@ -12,7 +12,7 @@ class AudioVisualizer extends HTMLElement {
 
         .cover {
           position: absolute;
-          top: 58%;
+          top: 55%;
           left: 50%;
           width: 250px;
           height: 250px;
@@ -42,7 +42,7 @@ class AudioVisualizer extends HTMLElement {
           top: 50%;
           left: 50%;
           width: 4px;
-          height: 30px; /* slightly taller to match larger visualizer */
+          height: 25px; /* slightly taller to match larger visualizer */
           background: linear-gradient(to top, #8262a9, #fdc259);
           transform-origin: center bottom;
           opacity: 0;
