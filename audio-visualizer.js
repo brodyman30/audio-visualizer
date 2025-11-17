@@ -110,7 +110,7 @@ class AudioVisualizer extends HTMLElement {
     function resetBars() {
       bars.forEach((bar, i) => {
         const angleDeg = (i / bars.length) * 360;
-        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(0.5)`;
       });
     }
 
