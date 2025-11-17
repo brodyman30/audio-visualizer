@@ -4,14 +4,14 @@ class AudioVisualizer extends HTMLElement {
       <style>
         .container {
           position: relative;
-          width: 220px;
-          height: 220px;
+          width: 250px;
+          height: 250px;
           overflow: visible;
         }
 
         .cover {
           position: absolute;
-          top: 58%;
+          top: 50%;
           left: 50%;
           width: 250px;
           height: 250px;
@@ -41,7 +41,7 @@ class AudioVisualizer extends HTMLElement {
           top: 50%;
           left: 50%;
           width: 4px;
-          height: 30px;
+          height: 40px; /* slightly taller to match larger visualizer */
           background: linear-gradient(to top, #8262a9, #fdc259);
           transform-origin: center bottom;
           opacity: 0;
@@ -76,10 +76,11 @@ class AudioVisualizer extends HTMLElement {
     const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
-    // Position bars radially from center
+    // Bars positioned radially from center, with larger offset for bigger image
+    const radius = 110; // radius from center to outline match cover (slightly less than half container)
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
-      bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
+      bar.style.transform = `rotate(${angleDeg}deg) translateY(-${radius}px) scaleY(0.5)`;
     });
 
     function animate() {
@@ -90,15 +91,14 @@ class AudioVisualizer extends HTMLElement {
         analyser.getByteFrequencyData(dataArray);
 
         bars.forEach((bar, i) => {
-          // MIRROR method: map bins so each bar gets mirrored lower freq if needed
           let binIdx = Math.floor(i / bars.length * bufferLength);
           if (binIdx >= bufferLength / 2) {
-            binIdx = bufferLength - binIdx - 1; // mirror to lower bins
+            binIdx = bufferLength - binIdx - 1;
           }
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
-          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
+          bar.style.transform = `rotate(${angleDeg}deg) translateY(-${radius}px) scaleY(${scale})`;
         });
 
         requestAnimationFrame(loop);
@@ -110,7 +110,7 @@ class AudioVisualizer extends HTMLElement {
     function resetBars() {
       bars.forEach((bar, i) => {
         const angleDeg = (i / bars.length) * 360;
-        bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(0.5)`;
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-${radius}px) scaleY(0.5)`;
       });
     }
 
@@ -135,3 +135,4 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer', AudioVisualizer);
+
