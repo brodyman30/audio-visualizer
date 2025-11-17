@@ -23,7 +23,7 @@ class AudioVisualizer extends HTMLElement {
         .cover img {
           width: 100%;
           height: 100%;
-          border-radius: 50%;
+          border-radius: 12px;
           object-fit: contain;
         }
 
