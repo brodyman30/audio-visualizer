@@ -40,7 +40,7 @@ class AudioVisualizer extends HTMLElement {
           top: 50%;
           left: 50%;
           width: 4px;
-          height: 40px;
+          height: 30px;
           background: linear-gradient(to top, #8262a9, #fdc259);
           transform-origin: center bottom;
         }
@@ -87,9 +87,8 @@ class AudioVisualizer extends HTMLElement {
         const maxIndex = bufferLength - 1;
 
         bars.forEach((bar, i) => {
-          const normalizedIndex = i / bars.length;
-          const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
-          const value = dataArray[logIndex] || 0;
+          const index = Math.floor((i / bars.length) * bufferLength);
+          const value = dataArray[index] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
           bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
