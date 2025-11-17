@@ -11,7 +11,7 @@ class AudioVisualizer extends HTMLElement {
 
         .cover {
           position: absolute;
-          top: 50%;
+          top: 58%;
           left: 50%;
           width: 250px;
           height: 250px;
