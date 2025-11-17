@@ -3,23 +3,26 @@ class AudioVisualizer extends HTMLElement {
     this.innerHTML = `
       <style>
         .container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
+          position: relative;
+          width: 220px;
+          height: 220px;
         }
 
-      .cover {
+        .cover {
+          position: absolute;
+          top: 50%;
+          left: 50%;
           width: 150px;
           height: 150px;
-          flex-shrink: 0;
+          transform: translate(-50%, -50%);
+          z-index: 1;
           cursor: pointer;
         }
 
         .cover img {
           width: 100%;
           height: 100%;
-          border-radius: 12px;
+          border-radius: 50%;
           object-fit: contain;
         }
 
