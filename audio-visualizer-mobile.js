@@ -3,52 +3,54 @@ class AudioVisualizer extends HTMLElement {
     this.innerHTML = `
       <style>
         .container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 16px;
+          position: relative;
+          width: 200px;
+          height: 200px;
         }
 
         .cover {
+          position: absolute;
+          top: 50%;
+          left: 50%;
           width: 150px;
           height: 150px;
-          flex-shrink: 0;
+          transform: translate(-50%, -50%);
+          z-index: 1;
           cursor: pointer;
         }
 
         .cover img {
           width: 100%;
           height: 100%;
-          border-radius: 12px;
-          object-fit: contain;
+          border-radius: 50%;
+          object-fit: cover;
         }
 
-        .visualizer {
-          display: none;
-          flex-direction: row;
-          align-items: flex-end;
-          gap: 4px;
-          height: 100px;
+        .visualizer-circle {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 200px;
+          height: 200px;
+          transform: translate(-50%, -50%);
+          pointer-events: none;
         }
 
         .bar {
-          width: 6px;
-          height: 60px;
+          position: absolute;
+          width: 4px;
+          height: 40px;
           background: linear-gradient(to top, #8262a9, #fdc259);
-          border-radius: 3px;
-          transform: scaleY(1);
+          transform-origin: bottom center;
         }
       </style>
 
       <div class="container">
-        <div class="visualizer" id="visualizer-left">
-          ${'<div class="bar"></div>'.repeat(10)}
+        <div class="visualizer-circle" id="visualizer-circle">
+          ${Array.from({ length: 32 }, () => '<div class="bar"></div>').join('')}
         </div>
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
-        </div>
-        <div class="visualizer" id="visualizer-right">
-          ${'<div class="bar"></div>'.repeat(10)}
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
       </div>
@@ -56,10 +58,7 @@ class AudioVisualizer extends HTMLElement {
 
     const audio = this.querySelector('#audio');
     const cover = this.querySelector('#cover');
-    const leftBars = this.querySelectorAll('#visualizer-left .bar');
-    const rightBars = this.querySelectorAll('#visualizer-right .bar');
-    const visualizers = this.querySelectorAll('.visualizer');
-
+    const bars = this.querySelectorAll('#visualizer-circle .bar');
     const audioCtx = new AudioContext();
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
@@ -72,22 +71,32 @@ class AudioVisualizer extends HTMLElement {
     const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
+    // Position bars in a circle
+    bars.forEach((bar, i) => {
+      const angle = (i / bars.length) * 2 * Math.PI;
+      const radius = 90;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      bar.style.left = `${100 + x}px`;
+      bar.style.top = `${100 + y}px`;
+      bar.style.transform = `rotate(${angle}rad) scaleY(0.5)`;
+    });
+
     function animate() {
       if (isAnimating) return;
       isAnimating = true;
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-        const allBars = [...leftBars, ...rightBars];
-        const totalBars = allBars.length;
         const maxIndex = bufferLength - 1;
 
-        allBars.forEach((bar, i) => {
-          const normalizedIndex = i / totalBars;
+        bars.forEach((bar, i) => {
+          const normalizedIndex = i / bars.length;
           const logIndex = Math.floor(Math.pow(normalizedIndex, 2) * maxIndex);
           const value = dataArray[logIndex] || 0;
           const scale = Math.max(value / 128, 0.5);
-          bar.style.transform = `scaleY(${scale})`;
+          const angle = (i / bars.length) * 2 * Math.PI;
+          bar.style.transform = `rotate(${angle}rad) scaleY(${scale})`;
         });
 
         requestAnimationFrame(loop);
@@ -97,9 +106,9 @@ class AudioVisualizer extends HTMLElement {
     }
 
     function resetBars() {
-      const allBars = [...leftBars, ...rightBars];
-      allBars.forEach(bar => {
-        bar.style.transform = 'scaleY(0.5)';
+      bars.forEach((bar, i) => {
+        const angle = (i / bars.length) * 2 * Math.PI;
+        bar.style.transform = `rotate(${angle}rad) scaleY(0.5)`;
       });
     }
 
@@ -108,7 +117,6 @@ class AudioVisualizer extends HTMLElement {
         audio.load();
         audio.play();
         audioCtx.resume();
-        visualizers.forEach(v => v.style.display = 'flex');
         animate();
       } else {
         audio.pause();
