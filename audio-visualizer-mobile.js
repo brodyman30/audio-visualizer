@@ -7,7 +7,6 @@ class AudioVisualizer extends HTMLElement {
           width: 220px;
           height: 220px;
           place-items: center;
-          display: grid;
         }
 
         .cover {
@@ -17,7 +16,6 @@ class AudioVisualizer extends HTMLElement {
           height: 150px;
           z-index: 1;
           cursor: pointer;
-          justify-content: center;
         }
 
         .cover img {
