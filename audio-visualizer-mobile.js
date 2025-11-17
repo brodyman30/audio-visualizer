@@ -92,7 +92,7 @@ class AudioVisualizer extends HTMLElement {
           const value = dataArray[logIndex] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
-          bar.style.transform = `rotate(${angleDeg}deg) translateY(-90px) scaleY(${scale})`;
+          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
         });
 
         requestAnimationFrame(loop);
