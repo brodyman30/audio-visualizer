@@ -25,6 +25,8 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           border-radius: 12px;
           object-fit: contain;
+          pointer-events: none;
+
         }
 
         .visualizer-circle {
