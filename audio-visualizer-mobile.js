@@ -11,21 +11,21 @@ class AudioVisualizer extends HTMLElement {
 
         .cover {
           position: absolute;
-          top: 58%; // Centers it in visualizer
+          top: 58%; 
           left: 50%;
-          width: 150px; // Size of Logo
+          width: 150px; 
           height: 150px;
           z-index: 1;
           cursor: pointer;
           transform: translate(-50%, -50%);
-         
+          -webkit-tap-highlight-color: transparent;     
 }
         }
 
         .cover img {
           width: 100%;
           height: 100%;
-          border-radius: 12px; // Fixes Clipping
+          border-radius: 12px; 
           object-fit: contain;
           pointer-events: none
 
@@ -45,8 +45,8 @@ class AudioVisualizer extends HTMLElement {
           top: 50%;
           left: 50%;
           width: 4px;
-          height: 30px; // Changes Bar Height 
-          background: linear-gradient(to top, #8262a9, #fdc259); // Bar Color
+          height: 30px; 
+          background: linear-gradient(to top, #8262a9, #fdc259); 
           transform-origin: center bottom;
           opacity: 0;
           transition: opacity 0.3s ease;
