@@ -124,6 +124,21 @@ class AudioVisualizer extends HTMLElement {
         audio.load();
         audio.play();
         audioCtx.resume();
+            // ✅ Media Session metadata goes here
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'Live Stream',
+          artist: 'KSDB 91.9',
+          album: 'Now Playing',
+          artwork: [
+            {
+              src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
+        });
+      }
         bars.forEach(bar => {
           bar.style.opacity = '1';
         });
