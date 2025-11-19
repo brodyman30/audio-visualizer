@@ -18,7 +18,7 @@ class AudioVisualizer extends HTMLElement {
           z-index: 1;
           cursor: pointer;
           transform: translate(-50%, -50%);
-          -webkit-tap-highlight-color: transparent; // disables tap highlight 
+         
 }
         }
 
