@@ -19,8 +19,6 @@ class AudioVisualizer extends HTMLElement {
           cursor: pointer;
           transform: translate(-50%, -50%);
           -webkit-tap-highlight-color: transparent;
-
-
         }
 
         .cover img {
@@ -29,7 +27,6 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 12px;
           object-fit: contain;
           pointer-events: none;
-
         }
 
         .visualizer-circle {
@@ -69,15 +66,8 @@ class AudioVisualizer extends HTMLElement {
     const audio = this.querySelector('#audio');
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
-    const audioCtx = new AudioContext();
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-
-    const source = audioCtx.createMediaElementSource(audio);
-    source.connect(audioCtx.destination);
-    source.connect(analyser);
-
-    const bufferLength = analyser.frequencyBinCount;
+    let audioCtx, analyser, source;
+    const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
     let isAnimating = false;
 
@@ -95,10 +85,9 @@ class AudioVisualizer extends HTMLElement {
         analyser.getByteFrequencyData(dataArray);
 
         bars.forEach((bar, i) => {
-          // MIRROR method: map bins so each bar gets mirrored lower freq if needed
           let binIdx = Math.floor(i / bars.length * bufferLength);
           if (binIdx >= bufferLength / 2) {
-            binIdx = bufferLength - binIdx - 1; // mirror to lower bins
+            binIdx = bufferLength - binIdx - 1;
           }
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
@@ -120,25 +109,54 @@ class AudioVisualizer extends HTMLElement {
     }
 
     cover.addEventListener('click', () => {
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        source = audioCtx.createMediaElementSource(audio);
+        source.connect(audioCtx.destination);
+        source.connect(analyser);
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
       if (audio.paused) {
         audio.load();
         audio.play();
-        audioCtx.resume();
-            // ✅ Media Session metadata goes here
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: 'Live Stream',
-          artist: 'KSDB 91.9',
-          album: 'Now Playing',
-          artwork: [
-            {
-              src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        });
-      }
+
+        // ✅ Set Media Session metadata
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: 'Live Stream',
+            artist: 'KSDB 91.9',
+            album: 'Now Playing',
+            artwork: [
+              {
+                src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
+                sizes: '512x512',
+                type: 'image/png'
+              }
+            ]
+          });
+
+          // Optional: Add media control handlers
+          navigator.mediaSession.setActionHandler('play', () => {
+            audio.play();
+            audioCtx.resume();
+            bars.forEach(bar => bar.style.opacity = '1');
+            animate();
+          });
+
+          navigator.mediaSession.setActionHandler('pause', () => {
+            audio.pause();
+            bars.forEach(bar => bar.style.opacity = '0');
+            resetBars();
+          });
+        }
+
         bars.forEach(bar => {
           bar.style.opacity = '1';
         });
@@ -155,4 +173,3 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
-
