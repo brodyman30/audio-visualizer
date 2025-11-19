@@ -18,7 +18,7 @@ class AudioVisualizer extends HTMLElement {
           z-index: 1;
           cursor: pointer;
           transform: translate(-50%, -50%);
-          -webkit-tap-highlight-color: rgba(0, 0, 0, 0); // disables tap highlight 
+          -webkit-tap-highlight-color: transparent; // disables tap highlight 
 }
         }
 
@@ -27,6 +27,8 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           border-radius: 12px; // Fixes Clipping
           object-fit: contain;
+          pointer-events: none
+
         }
 
         .visualizer-circle {
