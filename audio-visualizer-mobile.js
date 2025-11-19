@@ -11,24 +11,20 @@ class AudioVisualizer extends HTMLElement {
 
         .cover {
           position: absolute;
-          top: 58%; 
+          top: 58%;
           left: 50%;
-          width: 150px; 
+          width: 150px;
           height: 150px;
           z-index: 1;
           cursor: pointer;
           transform: translate(-50%, -50%);
-          -webkit-tap-highlight-color: transparent;     
-}
         }
 
         .cover img {
           width: 100%;
           height: 100%;
-          border-radius: 12px; 
+          border-radius: 12px;
           object-fit: contain;
-          pointer-events: none
-
         }
 
         .visualizer-circle {
@@ -45,8 +41,8 @@ class AudioVisualizer extends HTMLElement {
           top: 50%;
           left: 50%;
           width: 4px;
-          height: 30px; 
-          background: linear-gradient(to top, #8262a9, #fdc259); 
+          height: 30px;
+          background: linear-gradient(to top, #8262a9, #fdc259);
           transform-origin: center bottom;
           opacity: 0;
           transition: opacity 0.3s ease;
@@ -83,7 +79,7 @@ class AudioVisualizer extends HTMLElement {
     // Position bars radially from center
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
-      bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;  // Y is Visualizer radius, change for bigger logo size 
+      bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
     function animate() {
