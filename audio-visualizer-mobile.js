@@ -1,6 +1,8 @@
 class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
+    <head>
+      <meta name="theme-color" content="#8262a9">
       <style>
         .container {
           position: relative;
