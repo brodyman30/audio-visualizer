@@ -68,6 +68,9 @@ class AudioVisualizer extends HTMLElement {
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
+    // Detect iOS Safari/WebView
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
     // Position bars radially
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
@@ -111,21 +114,17 @@ class AudioVisualizer extends HTMLElement {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
 
-        // ✅ Prefer captureStream on Safari/iOS
-        if (audio.captureStream) {
-          try {
-            const stream = audio.captureStream();
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
-          } catch (err) {
-            console.warn("captureStream failed, falling back:", err);
-            const source = audioCtx.createMediaElementSource(audio);
-            source.connect(analyser);
-          }
+        if (!isIOS && audio.captureStream) {
+          // ✅ Desktop/Android path: captureStream for full visualization
+          const stream = audio.captureStream();
+          const source = audioCtx.createMediaStreamSource(stream);
+          source.connect(analyser);
         } else {
-          // Fallback for browsers without captureStream
+          // ✅ iOS path: connect via MediaElementSource
+          // (sound works, bars may freeze in background)
           const source = audioCtx.createMediaElementSource(audio);
           source.connect(analyser);
+          source.connect(audioCtx.destination);
         }
       }
 
