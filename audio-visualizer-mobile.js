@@ -55,6 +55,7 @@ class AudioVisualizer extends HTMLElement {
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
         </div>
+        <!-- ✅ playsinline ensures iOS background audio -->
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
       </div>
     `;
@@ -68,9 +69,6 @@ class AudioVisualizer extends HTMLElement {
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
-    // Detect iOS Safari/WebView
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
     // Position bars radially
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
@@ -83,21 +81,16 @@ class AudioVisualizer extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-
         bars.forEach((bar, i) => {
           let binIdx = Math.floor(i / bars.length * bufferLength);
-          if (binIdx >= bufferLength / 2) {
-            binIdx = bufferLength - binIdx - 1;
-          }
+          if (binIdx >= bufferLength / 2) binIdx = bufferLength - binIdx - 1;
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
           bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
         });
-
         requestAnimationFrame(loop);
       }
-
       loop();
     }
 
@@ -114,17 +107,10 @@ class AudioVisualizer extends HTMLElement {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
 
-        if (!isIOS && audio.captureStream) {
-          // ✅ Desktop/Android path: captureStream for full visualization
+        if (audio.captureStream) {
           const stream = audio.captureStream();
           const source = audioCtx.createMediaStreamSource(stream);
           source.connect(analyser);
-        } else {
-          // ✅ iOS path: connect via MediaElementSource
-          // (sound works, bars may freeze in background)
-          const source = audioCtx.createMediaElementSource(audio);
-          source.connect(analyser);
-          source.connect(audioCtx.destination);
         }
       }
 
@@ -133,18 +119,16 @@ class AudioVisualizer extends HTMLElement {
       }
 
       if (audio.paused) {
-        try {
-          await audio.play(); // ✅ audio element outputs sound directly
-        } catch (err) {
-          console.error('Audio play error:', err);
-          return;
-        }
+        await audio.play(); // ✅ audio element drives playback
+        bars.forEach(bar => (bar.style.opacity = '1'));
+        animate();
 
+        // ✅ Media Session metadata and handlers
         if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
             title: 'Wildcat 91.9',
             artist: 'You Belong.',
-            album: '',
+            album: 'Live Stream',
             artwork: [
               {
                 src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
@@ -153,10 +137,20 @@ class AudioVisualizer extends HTMLElement {
               }
             ]
           });
-        }
 
-        bars.forEach(bar => (bar.style.opacity = '1'));
-        animate();
+          navigator.mediaSession.setActionHandler('play', async () => {
+            await audio.play();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            bars.forEach(bar => (bar.style.opacity = '1'));
+            animate();
+          });
+
+          navigator.mediaSession.setActionHandler('pause', () => {
+            audio.pause();
+            bars.forEach(bar => (bar.style.opacity = '0'));
+            resetBars();
+          });
+        }
       } else {
         audio.pause();
         bars.forEach(bar => (bar.style.opacity = '0'));
