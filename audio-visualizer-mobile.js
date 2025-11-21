@@ -8,7 +8,6 @@ class AudioVisualizer extends HTMLElement {
           height: 220px;
           overflow: visible;
         }
-
         .cover {
           position: absolute;
           top: 58%;
@@ -19,19 +18,14 @@ class AudioVisualizer extends HTMLElement {
           cursor: pointer;
           transform: translate(-50%, -50%);
           -webkit-tap-highlight-color: transparent;
-
-
         }
-
         .cover img {
           width: 100%;
           height: 100%;
           border-radius: 12px;
           object-fit: contain;
           pointer-events: none;
-
         }
-
         .visualizer-circle {
           position: absolute;
           top: 0;
@@ -40,7 +34,6 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           pointer-events: none;
         }
-
         .bar {
           position: absolute;
           top: 50%;
@@ -62,43 +55,36 @@ class AudioVisualizer extends HTMLElement {
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
         </div>
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
+        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
       </div>
     `;
 
     const audio = this.querySelector('#audio');
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
-    const audioCtx = new AudioContext();
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
 
-    const source = audioCtx.createMediaElementSource(audio);
-    source.connect(audioCtx.destination);
-    source.connect(analyser);
-
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    let audioCtx, analyser, source;
     let isAnimating = false;
+    const bufferLength = 128;
+    const dataArray = new Uint8Array(bufferLength);
 
-    // Position bars radially from center
+    // Position bars radially
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
     function animate() {
-      if (isAnimating) return;
+      if (isAnimating || !analyser) return;
       isAnimating = true;
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
 
         bars.forEach((bar, i) => {
-          // MIRROR method: map bins so each bar gets mirrored lower freq if needed
           let binIdx = Math.floor(i / bars.length * bufferLength);
           if (binIdx >= bufferLength / 2) {
-            binIdx = bufferLength - binIdx - 1; // mirror to lower bins
+            binIdx = bufferLength - binIdx - 1;
           }
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
@@ -119,41 +105,53 @@ class AudioVisualizer extends HTMLElement {
       });
     }
 
-    cover.addEventListener('click', () => {
-      if (audio.paused) {
-        audio.load();
-        audio.play();
-        audioCtx.resume();
-            // ✅ Media Session metadata goes here
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: 'Live Stream',
-          artist: 'KSDB 91.9',
-          album: 'Now Playing',
-          artwork: [
-            {
-              src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        });
+    cover.addEventListener('click', async () => {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        // ✅ Connect audio only to analyser (not destination)
+        source = audioCtx.createMediaElementSource(audio);
+        source.connect(analyser);
       }
-        bars.forEach(bar => {
-          bar.style.opacity = '1';
-        });
+
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
+      if (audio.paused) {
+        try {
+          await audio.play(); // ✅ audio element outputs sound directly
+        } catch (err) {
+          console.error('Audio play error:', err);
+          return;
+        }
+
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: 'Wildcat 91.9',
+            artist: 'You Belong.',
+            album: '',
+            artwork: [
+              {
+                src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
+                sizes: '512x512',
+                type: 'image/png'
+              }
+            ]
+          });
+        }
+
+        bars.forEach(bar => (bar.style.opacity = '1'));
         animate();
       } else {
         audio.pause();
-        bars.forEach(bar => {
-          bar.style.opacity = '0';
-        });
+        bars.forEach(bar => (bar.style.opacity = '0'));
         resetBars();
       }
     });
   }
 }
-
-customElements.define('audio-visualizer-mobile', AudioVisualizer);
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
