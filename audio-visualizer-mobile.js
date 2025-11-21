@@ -111,13 +111,21 @@ class AudioVisualizer extends HTMLElement {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
 
-        // ✅ Use captureStream for analysis only
+        // ✅ Prefer captureStream on Safari/iOS
         if (audio.captureStream) {
-          const stream = audio.captureStream();
-          const source = audioCtx.createMediaStreamSource(stream);
-          source.connect(analyser);
+          try {
+            const stream = audio.captureStream();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+          } catch (err) {
+            console.warn("captureStream failed, falling back:", err);
+            const source = audioCtx.createMediaElementSource(audio);
+            source.connect(analyser);
+          }
         } else {
-          console.warn("captureStream not supported in this browser");
+          // Fallback for browsers without captureStream
+          const source = audioCtx.createMediaElementSource(audio);
+          source.connect(analyser);
         }
       }
 
