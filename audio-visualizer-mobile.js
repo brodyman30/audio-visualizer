@@ -8,7 +8,6 @@ class AudioVisualizer extends HTMLElement {
           height: 220px;
           overflow: visible;
         }
-
         .cover {
           position: absolute;
           top: 58%;
@@ -18,17 +17,13 @@ class AudioVisualizer extends HTMLElement {
           z-index: 1;
           cursor: pointer;
           transform: translate(-50%, -50%);
-          -webkit-tap-highlight-color: transparent;
         }
-
         .cover img {
           width: 100%;
           height: 100%;
           border-radius: 12px;
           object-fit: contain;
-          pointer-events: none;
         }
-
         .visualizer-circle {
           position: absolute;
           top: 0;
@@ -37,7 +32,6 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           pointer-events: none;
         }
-
         .bar {
           position: absolute;
           top: 50%;
@@ -57,21 +51,25 @@ class AudioVisualizer extends HTMLElement {
           ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
         </div>
         <div class="cover" id="cover">
-          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
+          https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png
         </div>
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
+        https://s.radiowave.io/ksdb.mp3</audio>
       </div>
     `;
 
     const audio = this.querySelector('#audio');
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
-    let audioCtx, analyser, source;
-    const bufferLength = 128;
-    const dataArray = new Uint8Array(bufferLength);
+
+    let audioCtx;
+    let analyser;
+    let source;
     let isAnimating = false;
 
-    // Position bars radially from center
+    const bufferLength = 128;
+    const dataArray = new Uint8Array(bufferLength);
+
+    // Position bars radially
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
@@ -83,21 +81,15 @@ class AudioVisualizer extends HTMLElement {
 
       function loop() {
         analyser.getByteFrequencyData(dataArray);
-
         bars.forEach((bar, i) => {
           let binIdx = Math.floor(i / bars.length * bufferLength);
-          if (binIdx >= bufferLength / 2) {
-            binIdx = bufferLength - binIdx - 1;
-          }
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
           const angleDeg = (i / bars.length) * 360;
           bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
         });
-
         requestAnimationFrame(loop);
       }
-
       loop();
     }
 
@@ -108,65 +100,48 @@ class AudioVisualizer extends HTMLElement {
       });
     }
 
-    cover.addEventListener('click', () => {
+    function initAudioContext() {
       if (!audioCtx) {
-        audioCtx = new AudioContext();
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
-
         source = audioCtx.createMediaElementSource(audio);
         source.connect(audioCtx.destination);
         source.connect(analyser);
       }
+    }
 
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+    function playAudio() {
+      initAudioContext();
+      audioCtx.resume().then(() => {
+        audio.play().then(() => {
+          bars.forEach(bar => bar.style.opacity = '1');
+          animate();
+        }).catch(err => console.error('Play error:', err));
+      });
+    }
 
+    function pauseAudio() {
+      audio.pause();
+      bars.forEach(bar => bar.style.opacity = '0');
+      resetBars();
+      isAnimating = false;
+    }
+
+    // Handle click and touch for iOS
+    cover.addEventListener('click', () => {
       if (audio.paused) {
-        audio.load();
-        audio.play();
-
-        // ✅ Set Media Session metadata
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: 'Wildcat 91.9',
-            artist: 'You Belong.',
-            album: '',
-            artwork: [
-              {
-                src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
-                sizes: '512x512',
-                type: 'image/png'
-              }
-            ]
-          });
-
-          // Optional: Add media control handlers
-          navigator.mediaSession.setActionHandler('play', () => {
-            audio.play();
-            audioCtx.resume();
-            bars.forEach(bar => bar.style.opacity = '1');
-            animate();
-          });
-
-          navigator.mediaSession.setActionHandler('pause', () => {
-            audio.pause();
-            bars.forEach(bar => bar.style.opacity = '0');
-            resetBars();
-          });
-        }
-
-        bars.forEach(bar => {
-          bar.style.opacity = '1';
-        });
-        animate();
+        playAudio();
       } else {
-        audio.pause();
-        bars.forEach(bar => {
-          bar.style.opacity = '0';
-        });
-        resetBars();
+        pauseAudio();
+      }
+    });
+
+    cover.addEventListener('touchstart', () => {
+      if (audio.paused) {
+        playAudio();
+      } else {
+        pauseAudio();
       }
     });
   }
