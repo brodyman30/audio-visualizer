@@ -63,7 +63,7 @@ class AudioVisualizer extends HTMLElement {
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
 
-    let audioCtx, analyser, source;
+    let audioCtx, analyser;
     let isAnimating = false;
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
@@ -111,9 +111,14 @@ class AudioVisualizer extends HTMLElement {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
 
-        // ✅ Connect audio only to analyser (not destination)
-        source = audioCtx.createMediaElementSource(audio);
-        source.connect(analyser);
+        // ✅ Use captureStream for analysis only
+        if (audio.captureStream) {
+          const stream = audio.captureStream();
+          const source = audioCtx.createMediaStreamSource(stream);
+          source.connect(analyser);
+        } else {
+          console.warn("captureStream not supported in this browser");
+        }
       }
 
       if (audioCtx.state === 'suspended') {
