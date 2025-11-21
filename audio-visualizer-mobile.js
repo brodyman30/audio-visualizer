@@ -113,6 +113,7 @@ class AudioVisualizer extends HTMLElement {
 
         source = audioCtx.createMediaElementSource(audio);
         source.connect(analyser);
+        source.connect(audioCtx.destination);
 
         // Keep graph alive with zero-gain tap
         tapGain = audioCtx.createGain();
