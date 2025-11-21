@@ -19,7 +19,6 @@
               height: 220px;
               overflow: visible;
             }
-
             .cover {
               position: absolute;
               top: 58%;
@@ -31,7 +30,6 @@
               transform: translate(-50%, -50%);
               -webkit-tap-highlight-color: transparent;
             }
-
             .cover img {
               width: 100%;
               height: 100%;
@@ -39,7 +37,6 @@
               object-fit: contain;
               pointer-events: none;
             }
-
             .visualizer-circle {
               position: absolute;
               top: 0;
@@ -48,7 +45,6 @@
               height: 100%;
               pointer-events: none;
             }
-
             .bar {
               position: absolute;
               top: 50%;
@@ -70,26 +66,31 @@
             <div class="cover" id="cover">
               <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
             </div>
-            <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous"></audio>
+            <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
           </div>
         `;
 
         const audio = this.querySelector('#audio');
         const cover = this.querySelector('#cover');
         const bars = this.querySelectorAll('#visualizer-circle .bar');
-        let audioCtx, analyser, source;
+
+        let audioCtx = null;
+        let analyser = null;
+        let source = null;
+        let tapGain = null;
+
         let isAnimating = false;
         const bufferLength = 128;
         const dataArray = new Uint8Array(bufferLength);
 
-        // Position bars radially
+        // Radial placement
         bars.forEach((bar, i) => {
           const angleDeg = (i / bars.length) * 360;
           bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
         });
 
         function animate() {
-          if (isAnimating) return;
+          if (isAnimating || !analyser) return;
           isAnimating = true;
 
           function loop() {
@@ -120,14 +121,21 @@
         }
 
         cover.addEventListener('click', async () => {
+          // Lazy-init Web Audio on user gesture
           if (!audioCtx) {
-            audioCtx = new AudioContext();
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
             analyser.fftSize = 256;
 
-            // ✅ Connect audio to analyser only (not destination)
+            // Connect the <audio> element to the analyser
             source = audioCtx.createMediaElementSource(audio);
             source.connect(analyser);
+
+            // Keep the graph "alive" without adding sound: analyser -> zero-gain -> destination
+            tapGain = audioCtx.createGain();
+            tapGain.gain.value = 0.0;
+            analyser.connect(tapGain);
+            tapGain.connect(audioCtx.destination);
           }
 
           if (audioCtx.state === 'suspended') {
@@ -135,9 +143,13 @@
           }
 
           if (audio.paused) {
-            await audio.play(); // ✅ audio element handles playback
+            try {
+              await audio.play(); // <audio> handles playback (best for iOS background)
+            } catch (err) {
+              console.error('Audio play error:', err);
+              return;
+            }
 
-            // ✅ Media Session metadata
             if ('mediaSession' in navigator) {
               navigator.mediaSession.metadata = new MediaMetadata({
                 title: 'Wildcat 91.9',
@@ -152,25 +164,25 @@
                 ]
               });
 
-              navigator.mediaSession.setActionHandler('play', () => {
-                audio.play();
-                audioCtx.resume();
-                bars.forEach(bar => bar.style.opacity = '1');
+              navigator.mediaSession.setActionHandler('play', async () => {
+                await audio.play();
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                bars.forEach(bar => (bar.style.opacity = '1'));
                 animate();
               });
 
               navigator.mediaSession.setActionHandler('pause', () => {
                 audio.pause();
-                bars.forEach(bar => bar.style.opacity = '0');
+                bars.forEach(bar => (bar.style.opacity = '0'));
                 resetBars();
               });
             }
 
-            bars.forEach(bar => bar.style.opacity = '1');
+            bars.forEach(bar => (bar.style.opacity = '1'));
             animate();
           } else {
             audio.pause();
-            bars.forEach(bar => bar.style.opacity = '0');
+            bars.forEach(bar => (bar.style.opacity = '0'));
             resetBars();
           }
         });
