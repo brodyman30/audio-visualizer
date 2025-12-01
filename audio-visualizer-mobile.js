@@ -11,7 +11,7 @@ class AudioVisualizer extends HTMLElement {
         /* Centered logo */
         .logo {
           position: absolute;
-          top: 50%;
+          top: 58%;
           left: 50%;
           width: 150px;
           height: 150px;
