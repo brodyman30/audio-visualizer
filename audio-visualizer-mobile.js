@@ -1,6 +1,6 @@
 /**
- * Audio Visualizer - Full Circle
- * Bars mirrored so both halves animate identically
+ * Audio Visualizer - Full Circle Balanced
+ * Bars mirrored so both halves animate evenly
  */
 class AudioVisualizer extends HTMLElement {
   connectedCallback() {
@@ -92,9 +92,10 @@ class AudioVisualizer extends HTMLElement {
 
       analyser.getByteFrequencyData(dataArray);
 
+      const halfBars = bars.length / 2;
       bars.forEach((bar, i) => {
-        // ✅ Mirror bins: use only first half of spectrum
-        const binIdx = Math.floor((i / bars.length) * (bufferLength / 2));
+        // ✅ Mirror bins: both halves use same lower-frequency bins
+        const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
         const value = dataArray[binIdx] || 0;
         const scale = Math.max(value / 128, 0.5);
         const angleDeg = (i / bars.length) * 360;
