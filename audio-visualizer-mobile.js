@@ -74,9 +74,8 @@ class AudioVisualizer extends HTMLElement {
     const bars = this.querySelectorAll('#visualizer-circle .bar');
 
     let audioCtx, analyser, source;
-    let isAnimating = false;
+    let animationFrameId = null;
     let isSourceConnected = false;
-    let usesCaptureStream = false; // Track which method we're using
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
@@ -87,22 +86,38 @@ class AudioVisualizer extends HTMLElement {
     });
 
     function animate() {
-      if (isAnimating || !analyser) return;
-      isAnimating = true;
-
-      function loop() {
-        analyser.getByteFrequencyData(dataArray);
-        bars.forEach((bar, i) => {
-          let binIdx = Math.floor(i / bars.length * bufferLength);
-          if (binIdx >= bufferLength / 2) binIdx = bufferLength - binIdx - 1;
-          const value = dataArray[binIdx] || 0;
-          const scale = Math.max(value / 128, 0.5);
-          const angleDeg = (i / bars.length) * 360;
-          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
-        });
-        requestAnimationFrame(loop);
+      // Only animate if page is visible (screen is on)
+      if (document.hidden) {
+        animationFrameId = null;
+        return;
       }
-      loop();
+
+      if (!analyser) return;
+
+      analyser.getByteFrequencyData(dataArray);
+      bars.forEach((bar, i) => {
+        let binIdx = Math.floor(i / bars.length * bufferLength);
+        if (binIdx >= bufferLength / 2) binIdx = bufferLength - binIdx - 1;
+        const value = dataArray[binIdx] || 0;
+        const scale = Math.max(value / 128, 0.5);
+        const angleDeg = (i / bars.length) * 360;
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function startVisualizer() {
+      if (!animationFrameId && !document.hidden) {
+        animate();
+      }
+    }
+
+    function stopVisualizer() {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
     }
 
     function resetBars() {
@@ -111,6 +126,21 @@ class AudioVisualizer extends HTMLElement {
         bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
       });
     }
+
+    // Handle visibility changes - pause visualizer when screen is off, but keep audio playing
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Screen is off/tab is hidden - stop visualizer animation (save battery)
+        stopVisualizer();
+        console.log('🌙 Screen off - visualizer paused, audio continues');
+      } else {
+        // Screen is on/tab is visible - resume visualizer if audio is playing
+        if (!audio.paused) {
+          startVisualizer();
+          console.log('☀️ Screen on - visualizer resumed');
+        }
+      }
+    });
 
     cover.addEventListener('click', async () => {
       try {
