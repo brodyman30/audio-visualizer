@@ -60,25 +60,29 @@ class AudioVisualizer extends HTMLElement {
           width: 40px;
           height: 40px;
           opacity: 0;
-          transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%) rotate(90deg); /* sideways orientation */
         }
 
         .bolt img {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          filter: drop-shadow(0 0 6px #fdc259);
+          filter: drop-shadow(0 0 12px #fdc259); /* stronger glow */
         }
 
         /* Smooth outward fade animation from top-right */
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(-50%, -50%) translate(0, 0);
+            transform: translate(-50%, -50%) rotate(90deg) translate(0, 0);
+          }
+          70% {
+            opacity: 1;
+            transform: translate(-50%, -50%) rotate(90deg) translate(80px, -80px);
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) translate(60px, -60px);
+            transform: translate(-50%, -50%) rotate(90deg) translate(100px, -100px);
           }
         }
       </style>
@@ -176,7 +180,7 @@ class AudioVisualizer extends HTMLElement {
     function shootBolt(bolt) {
       bolt.style.animation = 'none';
       bolt.offsetHeight; // force reflow
-      bolt.style.animation = 'boltShoot 0.8s ease-out forwards';
+      bolt.style.animation = 'boltShoot 1s ease-out forwards';
     }
 
     function startIOSBolts() {
