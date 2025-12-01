@@ -11,7 +11,7 @@ class AudioVisualizer extends HTMLElement {
         /* Centered logo */
         .logo {
           position: absolute;
-          top: 58%;
+          top: 58%; /* your preferred offset */
           left: 50%;
           width: 150px;
           height: 150px;
@@ -55,7 +55,7 @@ class AudioVisualizer extends HTMLElement {
 
         .bolt {
           position: absolute;
-          top: 50%;
+          top: 58%; /* match logo vertical offset */
           left: 50%;
           width: 40px;
           height: 40px;
@@ -70,11 +70,22 @@ class AudioVisualizer extends HTMLElement {
           filter: drop-shadow(0 0 6px #fdc259);
         }
 
+        /* Smooth outward fade animation from top-right */
+        @keyframes boltShoot {
+          0% {
+            opacity: 1;
+            transform: translate(0, 0);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(60px, -60px); /* outward to top-right */
+          }
+        }
+
         @keyframes lightningPulse {
-          0%   { opacity: 0; filter: drop-shadow(0 0 2px #fdc259); }
-          30%  { opacity: 1; filter: drop-shadow(0 0 12px #fdc259); }
-          60%  { opacity: 1; filter: drop-shadow(0 0 20px #fdc259); }
-          100% { opacity: 0; filter: drop-shadow(0 0 2px #fdc259); }
+          0%   { filter: drop-shadow(0 0 2px #fdc259); }
+          50%  { filter: drop-shadow(0 0 12px #fdc259); }
+          100% { filter: drop-shadow(0 0 2px #fdc259); }
         }
       </style>
 
@@ -169,17 +180,10 @@ class AudioVisualizer extends HTMLElement {
 
     // iOS bolts
     function shootBolt(bolt) {
-      const angle = Math.random() * 360;
-      const distance = 80;
-      bolt.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${distance}px)`;
-      bolt.style.opacity = 1;
-
       const img = bolt.querySelector('img');
       img.style.animation = 'none';
-      img.offsetHeight;
-      img.style.animation = 'lightningPulse 0.3s ease-in-out';
-
-      setTimeout(() => (bolt.style.opacity = 0), 300);
+      img.offsetHeight; // force reflow
+      img.style.animation = 'boltShoot 0.8s ease-out forwards, lightningPulse 0.8s ease-out';
     }
 
     function startIOSBolts() {
@@ -187,7 +191,7 @@ class AudioVisualizer extends HTMLElement {
       iosIntervalId = setInterval(() => {
         const bolt = bolts[Math.floor(Math.random() * bolts.length)];
         shootBolt(bolt);
-      }, 500);
+      }, 600);
     }
 
     function stopIOSBolts() {
