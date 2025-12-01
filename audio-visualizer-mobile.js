@@ -3,71 +3,72 @@ class AudioVisualizer extends HTMLElement {
     this.innerHTML = `
       <style>
         /* Container */
-      .container {
-        position: relative;
-        width: 220px;
-        height: 220px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      .logo {
-        width: 150px;
-        height: 150px;
-        z-index: 2;
-        cursor: pointer;
-      }
-      
-      .logo img {
-        width: 100%;
-        height: 100%;
-        border-radius: 12px;
-        object-fit: contain;
-        pointer-events: none;
-      }
-      
-      /* Bars and bolts share the same center */
-      .visualizer-circle,
-      #bolts {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-      }
-      
-      .bar {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 4px;
-        height: 30px;
-        background: linear-gradient(to top, #8262a9, #fdc259);
-        transform-origin: center bottom;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        border-radius: 50px;
-      }
-      
-      .bolt {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 40px;
-        height: 40px;
-        opacity: 0;
-        transform: translate(-50%, -50%);
-      }
-      
-      .bolt img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        filter: drop-shadow(0 0 6px #fdc259);
-      }
+        .container {
+          position: relative;
+          width: 220px;
+          height: 220px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        /* Logo (always visible) */
+        .logo {
+          width: 150px;
+          height: 150px;
+          z-index: 2;
+          cursor: pointer;
+        }
+
+        .logo img {
+          width: 100%;
+          height: 100%;
+          border-radius: 12px;
+          object-fit: contain;
+          pointer-events: none;
+        }
+
+        /* Bars and bolts share the same center */
+        .visualizer-circle,
+        #bolts {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+        }
+
+        .bar {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 4px;
+          height: 30px;
+          background: linear-gradient(to top, #8262a9, #fdc259);
+          transform-origin: center bottom;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          border-radius: 50px;
+        }
+
+        .bolt {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 40px;
+          height: 40px;
+          opacity: 0;
+          transform: translate(-50%, -50%);
+        }
+
+        .bolt img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          filter: drop-shadow(0 0 6px #fdc259);
+        }
 
         /* Glow pulse animation */
         @keyframes lightningPulse {
@@ -220,3 +221,4 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
