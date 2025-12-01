@@ -1,3 +1,8 @@
+/**
+ * Audio Visualizer - Apple Device Compatible
+ * Trade-off on iOS: Visualizer OR background audio (not both simultaneously on iOS Safari)
+ * Other browsers: Both work perfectly
+ */
 class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
