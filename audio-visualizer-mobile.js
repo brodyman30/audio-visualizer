@@ -8,7 +8,6 @@ class AudioVisualizer extends HTMLElement {
           height: 220px;
           overflow: visible;
         }
-
         .cover {
           position: absolute;
           top: 58%;
@@ -20,7 +19,6 @@ class AudioVisualizer extends HTMLElement {
           transform: translate(-50%, -50%);
           -webkit-tap-highlight-color: transparent;
         }
-
         .cover img {
           width: 100%;
           height: 100%;
@@ -28,7 +26,6 @@ class AudioVisualizer extends HTMLElement {
           object-fit: contain;
           pointer-events: none;
         }
-
         .visualizer-circle {
           position: absolute;
           top: 0;
@@ -37,7 +34,6 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           pointer-events: none;
         }
-
         .bar {
           position: absolute;
           top: 50%;
@@ -50,6 +46,34 @@ class AudioVisualizer extends HTMLElement {
           transition: opacity 0.3s ease;
           border-radius: 50px;
         }
+        .overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0,0,0,0.6);
+          color: #fff;
+          font-size: 14px;
+          text-align: center;
+          border-radius: 12px;
+          z-index: 2;
+          padding: 10px;
+        }
+        .overlay button {
+          margin-top: 10px;
+          padding: 6px 12px;
+          background: #fdc259;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+          color: #000;
+        }
       </style>
 
       <div class="container">
@@ -60,12 +84,18 @@ class AudioVisualizer extends HTMLElement {
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
+        <div class="overlay" id="overlay" style="display:none;">
+          <div>Visualizer not available on this device</div>
+          <button id="dismiss">Dismiss</button>
+        </div>
       </div>
     `;
 
     const audio = this.querySelector('#audio');
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
+    const overlay = this.querySelector('#overlay');
+    const dismissBtn = this.querySelector('#dismiss');
 
     let audioCtx, analyser;
     const bufferLength = 128;
@@ -78,11 +108,14 @@ class AudioVisualizer extends HTMLElement {
     });
 
     function animate() {
-      if (!analyser) return;
+      if (!analyser) {
+        overlay.style.display = 'flex';
+        return;
+      }
+      overlay.style.display = 'none';
 
       function loop() {
-        if (document.hidden) return; // stop animating when app is closed/backgrounded
-
+        if (document.hidden) return;
         analyser.getByteFrequencyData(dataArray);
 
         const halfBars = bars.length / 2;
@@ -106,7 +139,6 @@ class AudioVisualizer extends HTMLElement {
       });
     }
 
-    // Resume visualizer automatically when app becomes visible again
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && !audio.paused && analyser) {
         animate();
@@ -125,11 +157,12 @@ class AudioVisualizer extends HTMLElement {
             const source = audioCtx.createMediaStreamSource(stream);
             source.connect(analyser);
           } catch (e) {
-            analyser = null; // gracefully disable visualizer if captureStream fails
+            analyser = null;
+            overlay.style.display = 'flex';
           }
         } else {
-          // No captureStream support → skip visualizer to preserve background audio
           analyser = null;
+          overlay.style.display = 'flex';
         }
       }
 
@@ -141,39 +174,16 @@ class AudioVisualizer extends HTMLElement {
         await audio.play();
         bars.forEach(bar => (bar.style.opacity = '1'));
         if (analyser && !document.hidden) animate();
-
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: 'Wildcat 91.9',
-            artist: 'You Belong.',
-            album: 'Live Stream',
-            artwork: [
-              {
-                src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
-                sizes: '512x512',
-                type: 'image/png'
-              }
-            ]
-          });
-
-          navigator.mediaSession.setActionHandler('play', async () => {
-            await audio.play();
-            if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
-            bars.forEach(bar => (bar.style.opacity = '1'));
-            if (analyser && !document.hidden) animate();
-          });
-
-          navigator.mediaSession.setActionHandler('pause', () => {
-            audio.pause();
-            bars.forEach(bar => (bar.style.opacity = '0'));
-            resetBars();
-          });
-        }
       } else {
         audio.pause();
         bars.forEach(bar => (bar.style.opacity = '0'));
         resetBars();
       }
+    });
+
+    // Dismiss overlay
+    dismissBtn.addEventListener('click', () => {
+      overlay.style.display = 'none';
     });
   }
 }
