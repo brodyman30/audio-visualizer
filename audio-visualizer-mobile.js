@@ -34,7 +34,6 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 12px;
           object-fit: contain;
           pointer-events: none;
-        
         }
         .visualizer-circle {
           position: absolute;
@@ -76,7 +75,7 @@ class AudioVisualizer extends HTMLElement {
     let audioCtx, analyser, source;
     let animationFrameId = null;
     let isSourceConnected = false;
-    const bufferLength = 128;
+    const bufferLength = 256;
     const dataArray = new Uint8Array(bufferLength);
 
     // Position bars radially - mirrored on BOTH sides (full 360 degrees)
@@ -96,6 +95,7 @@ class AudioVisualizer extends HTMLElement {
 
       analyser.getByteFrequencyData(dataArray);
       bars.forEach((bar, i) => {
+        // Map each bar to a unique frequency bin across the full spectrum
         const binIdx = Math.floor((i / bars.length) * bufferLength);
         const value = dataArray[binIdx] || 0;
         const scale = Math.max(value / 128, 0.5);
@@ -145,7 +145,7 @@ class AudioVisualizer extends HTMLElement {
         if (!audioCtx) {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           analyser = audioCtx.createAnalyser();
-          analyser.fftSize = 256;
+          analyser.fftSize = 512;
           console.log('✅ AudioContext initialized');
         }
 
