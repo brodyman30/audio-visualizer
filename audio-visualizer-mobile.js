@@ -55,8 +55,8 @@ class AudioVisualizer extends HTMLElement {
         <div class="cover" id="cover">
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
         </div>
-        <!-- ✅ playsinline ensures iOS background audio -->
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
+        <!-- ✅ playsinline + x5-playsinline ensures iOS background audio -->
+        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline x-webkit-airplay="allow"></audio>
       </div>
     `;
 
