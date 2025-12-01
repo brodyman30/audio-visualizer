@@ -64,7 +64,6 @@ class AudioVisualizer extends HTMLElement {
     const bars = this.querySelectorAll('#visualizer-circle .bar');
 
     let audioCtx, analyser;
-    let isAnimating = false;
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
@@ -75,15 +74,16 @@ class AudioVisualizer extends HTMLElement {
     });
 
     function animate() {
-      if (isAnimating || !analyser) return;
-      isAnimating = true;
+      if (!analyser) return;
 
       function loop() {
+        if (document.hidden) return; // stop animating when app is closed/backgrounded
+
         analyser.getByteFrequencyData(dataArray);
 
         const halfBars = bars.length / 2;
         bars.forEach((bar, i) => {
-          // ✅ Mirror bins: both halves use same lower-frequency bins
+          // ✅ Mirror bins so both halves animate evenly
           const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
@@ -113,6 +113,10 @@ class AudioVisualizer extends HTMLElement {
           const stream = audio.captureStream();
           const source = audioCtx.createMediaStreamSource(stream);
           source.connect(analyser);
+        } else {
+          const source = audioCtx.createMediaElementSource(audio);
+          source.connect(analyser);
+          // no need to connect to destination, audio element already plays sound
         }
       }
 
