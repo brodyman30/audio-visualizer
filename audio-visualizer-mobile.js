@@ -2,23 +2,26 @@ class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
       <style>
+        /* Container */
         .container {
           position: relative;
           width: 220px;
           height: 220px;
           overflow: visible;
         }
+
+        /* Cover (tower image container) */
         .cover {
           position: absolute;
           top: 58%;
           left: 50%;
           width: 150px;
           height: 150px;
-          z-index: 1;
           cursor: pointer;
           transform: translate(-50%, -50%);
           -webkit-tap-highlight-color: transparent;
         }
+
         .cover img {
           width: 100%;
           height: 100%;
@@ -26,6 +29,8 @@ class AudioVisualizer extends HTMLElement {
           object-fit: contain;
           pointer-events: none;
         }
+
+        /* Bar visualizer (Android/desktop path) */
         .visualizer-circle {
           position: absolute;
           top: 0;
@@ -34,6 +39,7 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           pointer-events: none;
         }
+
         .bar {
           position: absolute;
           top: 50%;
@@ -46,13 +52,15 @@ class AudioVisualizer extends HTMLElement {
           transition: opacity 0.3s ease;
           border-radius: 50px;
         }
+
+        /* Lightning bolts (iOS path) */
         .bolt {
           position: absolute;
           bottom: 50%;
           left: 50%;
           width: 2px;
           height: 60px;
-          background: linear-gradient(to top, #fdc259, #fff);
+          background: linear-gradient(to top, #fdc259, #ffffff);
           opacity: 0;
           transform-origin: bottom center;
           border-radius: 2px;
@@ -65,7 +73,7 @@ class AudioVisualizer extends HTMLElement {
           ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
         </div>
         <div class="cover" id="cover">
-          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Tower" />
+          <img src="tower.png" alt="Tower" />
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
         <div id="bolts">
@@ -85,7 +93,6 @@ class AudioVisualizer extends HTMLElement {
 
     // Platform detection
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isAndroid = /Android/.test(navigator.userAgent);
 
     // Position bars radially
     bars.forEach((bar, i) => {
@@ -93,7 +100,7 @@ class AudioVisualizer extends HTMLElement {
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
-    // Lightning bolt animation for iOS
+    /* Lightning bolts for iOS */
     function shootBolt(bolt) {
       const angle = Math.random() * 360;
       bolt.style.transform = `rotate(${angle}deg) translateY(-40px)`;
@@ -107,7 +114,7 @@ class AudioVisualizer extends HTMLElement {
       }, 500);
     }
 
-    // Bar visualizer animation for Android
+    /* Bars for non‑iOS */
     function androidLoop() {
       analyser.getByteFrequencyData(dataArray);
       const halfBars = bars.length / 2;
@@ -121,13 +128,14 @@ class AudioVisualizer extends HTMLElement {
       requestAnimationFrame(androidLoop);
     }
 
+    /* Play/pause handler */
     cover.addEventListener('click', async () => {
       if (audio.paused) {
         await audio.play();
 
         if (isIOS) {
-          iosLoop(); // run lightning bolts
-        } else if (isAndroid) {
+          iosLoop(); // run lightning bolts only
+        } else {
           if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
