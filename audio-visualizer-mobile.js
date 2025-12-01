@@ -92,7 +92,7 @@ class AudioVisualizer extends HTMLElement {
         <div id="bolts">
           ${Array.from({ length: 6 }, () => `
             <div class="bolt">
-              <img src="https://static.wixstatic.com/shapes/eaaa6a_3307af24f68941bfaa446785b9f2b16a.svg" />
+              <img src="https://static.wixstatic.com/media/eaaa6a_0ce7ee88c3894941bcb1da72a58d1c0e~mv2.png" />
             </div>
           `).join('')}
         </div>
