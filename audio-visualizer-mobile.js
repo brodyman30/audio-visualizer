@@ -1,11 +1,11 @@
 /**
- * Audio Visualizer - Optimal Solution for ALL Devices
+ * Audio Visualizer - Fixed for ALL Devices
  * 
- * Features:
- * - Visualizer animates when screen is ON (all devices including iOS)
- * - Audio continues when screen is OFF (background playback)
- * - Lock screen controls work on iOS
- * - Visualizer pauses when not visible (saves battery)
+ * KEY FIXES:
+ * - Proper conditional for captureStream vs createMediaElementSource
+ * - ALWAYS connect analyser to destination for audio output
+ * - Visualizer only runs when tab is visible (saves battery)
+ * - Background audio continues when screen is off
  */
 
 class AudioVisualizer extends HTMLElement {
@@ -28,6 +28,10 @@ class AudioVisualizer extends HTMLElement {
           cursor: pointer;
           transform: translate(-50%, -50%);
           -webkit-tap-highlight-color: transparent;
+          transition: transform 0.2s ease;
+        }
+        .cover:active {
+          transform: translate(-50%, -50%) scale(0.95);
         }
         .cover img {
           width: 100%;
@@ -35,6 +39,7 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 12px;
           object-fit: contain;
           pointer-events: none;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .visualizer-circle {
           position: absolute;
@@ -96,8 +101,7 @@ class AudioVisualizer extends HTMLElement {
 
       analyser.getByteFrequencyData(dataArray);
       bars.forEach((bar, i) => {
-        let binIdx = Math.floor(i / bars.length * bufferLength);
-        if (binIdx >= bufferLength / 2) binIdx = bufferLength - binIdx - 1;
+        const binIdx = Math.floor((i / bars.length) * bufferLength);
         const value = dataArray[binIdx] || 0;
         const scale = Math.max(value / 128, 0.5);
         const angleDeg = (i / bars.length) * 360;
@@ -144,54 +148,56 @@ class AudioVisualizer extends HTMLElement {
 
     cover.addEventListener('click', async () => {
       try {
-        // ✅ Initialize AudioContext only once
+        // Initialize AudioContext only once
         if (!audioCtx) {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           analyser = audioCtx.createAnalyser();
           analyser.fftSize = 256;
+          console.log('✅ AudioContext initialized');
         }
 
-        // ✅ Create and connect source only once
+        // Create and connect source only once
         if (!isSourceConnected) {
           try {
-            // Try captureStream first (Chrome/Firefox - best approach)
+            // Check if captureStream is available (Chrome/Firefox)
             if (typeof audio.captureStream === 'function') {
               const stream = audio.captureStream();
               source = audioCtx.createMediaStreamSource(stream);
               source.connect(analyser);
-              console.log('✅ Using captureStream - optimal method');
+              analyser.connect(audioCtx.destination);
+              console.log('✅ Using captureStream (Chrome/Firefox)');
             } else {
-              // For Chrome/Firefox:
-              source = audioCtx.createMediaStreamSource(stream);
-              source.connect(analyser);
-              analyser.connect(audioCtx.destination);  // Audio goes OUT
-              
-              // For Safari:
+              // Safari fallback: createMediaElementSource
               source = audioCtx.createMediaElementSource(audio);
               source.connect(analyser);
-              analyser.connect(audioCtx.destination);  // MUST have this line!
+              analyser.connect(audioCtx.destination);
+              console.log('✅ Using createMediaElementSource (Safari)');
             }
             isSourceConnected = true;
           } catch (error) {
-            console.error('Error connecting audio source:', error);
+            console.error('❌ Error connecting audio source:', error.message);
+            return;
           }
         }
 
-        // ✅ Resume AudioContext if suspended
+        // Resume AudioContext if suspended
         if (audioCtx.state === 'suspended') {
           await audioCtx.resume();
+          console.log('✅ AudioContext resumed');
         }
 
         if (audio.paused) {
+          // PLAY
           await audio.play();
           bars.forEach(bar => (bar.style.opacity = '1'));
           
-          // Start visualizer only if screen is on
           if (!document.hidden) {
             startVisualizer();
           }
 
-          // ✅ Media Session API - enables lock screen controls and background playback
+          console.log('▶️ Playing');
+
+          // Media Session API
           if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: 'Wildcat 91.9',
@@ -213,6 +219,7 @@ class AudioVisualizer extends HTMLElement {
               if (!document.hidden) {
                 startVisualizer();
               }
+              console.log('▶️ Resumed from lock screen');
             });
 
             navigator.mediaSession.setActionHandler('pause', () => {
@@ -220,16 +227,19 @@ class AudioVisualizer extends HTMLElement {
               bars.forEach(bar => (bar.style.opacity = '0'));
               stopVisualizer();
               resetBars();
+              console.log('⏸ Paused from lock screen');
             });
           }
         } else {
+          // PAUSE
           audio.pause();
           bars.forEach(bar => (bar.style.opacity = '0'));
           stopVisualizer();
           resetBars();
+          console.log('⏸ Paused');
         }
       } catch (error) {
-        console.error('Error in audio playback:', error);
+        console.error('❌ Error in audio playback:', error.message);
       }
     });
 
