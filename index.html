@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Visualizer - Choose Your Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+        
+        .versions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .version-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            color: white;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .version-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.4);
+        }
+        
+        .version-card h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .version-card .emoji {
+            font-size: 32px;
+        }
+        
+        .version-card p {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        
+        .features li {
+            padding: 8px 0;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .features li::before {
+            content: '✓';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: rgba(76, 175, 80, 0.3);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-weight: bold;
+        }
+        
+        .features li.warning::before {
+            content: '!';
+            background: rgba(255, 152, 0, 0.3);
+        }
+        
+        .button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: rgba(255,255,255,0.25);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .button:hover {
+            background: rgba(255,255,255,0.35);
+        }
+        
+        .recommended {
+            border: 3px solid rgba(76, 175, 80, 0.6);
+            position: relative;
+        }
+        
+        .recommended::after {
+            content: 'RECOMMENDED';
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-section {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            color: white;
+            margin-top: 30px;
+        }
+        
+        .info-section h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        
+        .info-section p {
+            font-size: 15px;
+            line-height: 1.7;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+        
+        .browser-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        .browser-table th,
+        .browser-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .browser-table th {
+            background: rgba(255,255,255,0.1);
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 32px;
+            }
+            
+            .versions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Audio Visualizer</h1>
+            <p>Fixed for Apple Devices - Choose Your Version</p>
+        </div>
+        
+        <div class="versions">
+            <!-- Background Audio Priority Version -->
+            <div class="version-card recommended">
+                <h2><span class="emoji">🎧</span> Background Audio Priority</h2>
+                <p>Best for radio streams and continuous playback. Ensures audio keeps playing when you lock your screen or switch apps on iOS.</p>
+                
+                <ul class="features">
+                    <li>Chrome/Firefox: Full animated visualizer</li>
+                    <li>Chrome/Firefox: Background audio works</li>
+                    <li>iOS Safari: Background audio works</li>
+                    <li class="warning">iOS Safari: Static visualizer (30% opacity)</li>
+                </ul>
+                
+                <a href="test-visualizer.html" class="button">Try Background Priority →</a>
+            </div>
+            
+            <!-- Visualizer Priority Version -->
+            <div class="version-card">
+                <h2><span class="emoji">🎨</span> Visualizer Priority</h2>
+                <p>Best for users who stay on the page. Provides beautiful animated visualizer on all devices including iOS Safari.</p>
+                
+                <ul class="features">
+                    <li>All browsers: Animated visualizer</li>
+                    <li>Chrome/Firefox: Background audio works</li>
+                    <li class="warning">iOS Safari: Audio stops when backgrounded</li>
+                    <li class="warning">iOS Safari: No lock screen playback</li>
+                </ul>
+                
+                <a href="test-visualizer-priority.html" class="button">Try Visualizer Priority →</a>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3>📱 Why Two Versions?</h3>
+            <p>
+                iOS Safari has a fundamental limitation: it doesn't support <code>captureStream()</code> for audio elements, 
+                and when you use <code>createMediaElementSource()</code> (required for visualizers), iOS automatically 
+                suspends the audio when the app goes to background.
+            </p>
+            <p>
+                This means on iOS Safari, you must choose between:
+            </p>
+            <ul style="list-style-position: inside; margin-left: 20px; opacity: 0.9;">
+                <li style="margin: 8px 0;">✅ Animated visualizer (but audio stops when backgrounded)</li>
+                <li style="margin: 8px 0;">✅ Background audio playback (but visualizer is static)</li>
+            </ul>
+            <p style="margin-top: 15px;">
+                On Chrome, Firefox, and Edge, you get both features working perfectly! 🎉
+            </p>
+            
+            <h3 style="margin-top: 25px;">🌐 Browser Compatibility</h3>
+            <table class="browser-table">
+                <thead>
+                    <tr>
+                        <th>Browser</th>
+                        <th>Background Priority</th>
+                        <th>Visualizer Priority</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Chrome/Edge (All)</td>
+                        <td>✅ Both work</td>
+                        <td>✅ Both work</td>
+                    </tr>
+                    <tr>
+                        <td>Firefox (All)</td>
+                        <td>✅ Both work</td>
+                        <td>✅ Both work</td>
+                    </tr>
+                    <tr>
+                        <td>Safari macOS</td>
+                        <td>⚠️ Limited background</td>
+                        <td>✅ Visualizer works</td>
+                    </tr>
+                    <tr>
+                        <td>Safari iOS</td>
+                        <td>✅ Static bars + audio</td>
+                        <td>✅ Animated + no bg audio</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
