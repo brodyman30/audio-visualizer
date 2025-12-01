@@ -55,7 +55,7 @@ class AudioVisualizer extends HTMLElement {
         .bolt {
           position: absolute;
           top: calc(58% - 75px);  /* logo center minus half logo height */
-          left: calc(50% + 75px); /* logo center plus half logo width */
+          left: calc(50% + 95px); /* logo center plus half logo width */
           width: 40px;
           height: 40px;
           opacity: 0;
