@@ -111,6 +111,21 @@ class AudioVisualizer extends HTMLElement {
     let androidLoopId = null;
     let iosIntervalId = null;
 
+    // Media Session metadata
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'You Belong.',
+        artist: 'Wildcat 91.9',
+        album: 'Live Stream',
+        artwork: [
+          { src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => audio.play());
+      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+    }
+
     // Position bars radially
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
@@ -211,6 +226,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
