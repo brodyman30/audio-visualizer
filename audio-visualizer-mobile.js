@@ -1,7 +1,3 @@
-/**
- * Audio Visualizer - Full Circle Balanced
- * Bars mirrored so both halves animate evenly
- */
 class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
@@ -22,10 +18,6 @@ class AudioVisualizer extends HTMLElement {
           cursor: pointer;
           transform: translate(-50%, -50%);
           -webkit-tap-highlight-color: transparent;
-          transition: transform 0.2s ease;
-        }
-        .cover:active {
-          transform: translate(-50%, -50%) scale(0.95);
         }
         .cover img {
           width: 100%;
@@ -71,51 +63,37 @@ class AudioVisualizer extends HTMLElement {
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
 
-    let audioCtx, analyser, source;
-    let animationFrameId = null;
-    let isSourceConnected = false;
-    const bufferLength = 256;
+    let audioCtx, analyser;
+    let isAnimating = false;
+    const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
-    // Position bars radially around full circle
+    // Position bars radially
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
     function animate() {
-      if (document.hidden) {
-        animationFrameId = null;
-        return;
+      if (isAnimating || !analyser) return;
+      isAnimating = true;
+
+      function loop() {
+        analyser.getByteFrequencyData(dataArray);
+
+        const halfBars = bars.length / 2;
+        bars.forEach((bar, i) => {
+          // ✅ Mirror bins so both halves animate evenly
+          const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
+          const value = dataArray[binIdx] || 0;
+          const scale = Math.max(value / 128, 0.5);
+          const angleDeg = (i / bars.length) * 360;
+          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
+        });
+
+        requestAnimationFrame(loop);
       }
-      if (!analyser) return;
-
-      analyser.getByteFrequencyData(dataArray);
-
-      const halfBars = bars.length / 2;
-      bars.forEach((bar, i) => {
-        // ✅ Mirror bins: both halves use same lower-frequency bins
-        const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
-        const value = dataArray[binIdx] || 0;
-        const scale = Math.max(value / 128, 0.5);
-        const angleDeg = (i / bars.length) * 360;
-        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
-      });
-
-      animationFrameId = requestAnimationFrame(animate);
-    }
-
-    function startVisualizer() {
-      if (!animationFrameId && !document.hidden) {
-        animate();
-      }
-    }
-
-    function stopVisualizer() {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
+      loop();
     }
 
     function resetBars() {
@@ -125,87 +103,61 @@ class AudioVisualizer extends HTMLElement {
       });
     }
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopVisualizer();
-      } else {
-        if (!audio.paused) startVisualizer();
-      }
-    });
-
     cover.addEventListener('click', async () => {
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          analyser = audioCtx.createAnalyser();
-          analyser.fftSize = 512;
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        if (audio.captureStream) {
+          const stream = audio.captureStream();
+          const source = audioCtx.createMediaStreamSource(stream);
+          source.connect(analyser);
         }
+      }
 
-        if (!isSourceConnected) {
-          if (typeof audio.captureStream === 'function') {
-            const stream = audio.captureStream();
-            source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
-          } else {
-            source = audioCtx.createMediaElementSource(audio);
-            source.connect(analyser);
-            source.connect(audioCtx.destination);
-          }
-          isSourceConnected = true;
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
+      if (audio.paused) {
+        await audio.play();
+        bars.forEach(bar => (bar.style.opacity = '1'));
+        animate();
+
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: 'Wildcat 91.9',
+            artist: 'You Belong.',
+            album: 'Live Stream',
+            artwork: [
+              {
+                src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
+                sizes: '512x512',
+                type: 'image/png'
+              }
+            ]
+          });
+
+          navigator.mediaSession.setActionHandler('play', async () => {
+            await audio.play();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            bars.forEach(bar => (bar.style.opacity = '1'));
+            animate();
+          });
+
+          navigator.mediaSession.setActionHandler('pause', () => {
+            audio.pause();
+            bars.forEach(bar => (bar.style.opacity = '0'));
+            resetBars();
+          });
         }
-
-        if (audioCtx.state === 'suspended') {
-          await audioCtx.resume();
-        }
-
-        if (audio.paused) {
-          await audio.play();
-          bars.forEach(bar => (bar.style.opacity = '1'));
-          if (!document.hidden) startVisualizer();
-
-          if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-              title: 'Wildcat 91.9',
-              artist: 'You Belong.',
-              album: 'Live Stream',
-              artwork: [
-                {
-                  src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
-                  sizes: '512x512',
-                  type: 'image/png'
-                }
-              ]
-            });
-
-            navigator.mediaSession.setActionHandler('play', async () => {
-              await audio.play();
-              if (audioCtx.state === 'suspended') await audioCtx.resume();
-              bars.forEach(bar => (bar.style.opacity = '1'));
-              if (!document.hidden) startVisualizer();
-            });
-
-            navigator.mediaSession.setActionHandler('pause', () => {
-              audio.pause();
-              bars.forEach(bar => (bar.style.opacity = '0'));
-              stopVisualizer();
-              resetBars();
-            });
-          }
-        } else {
-          audio.pause();
-          bars.forEach(bar => (bar.style.opacity = '0'));
-          stopVisualizer();
-          resetBars();
-        }
-      } catch (error) {
-        console.error('❌ Error in audio playback:', error.message);
+      } else {
+        audio.pause();
+        bars.forEach(bar => (bar.style.opacity = '0'));
+        resetBars();
       }
     });
-
-    this.disconnectedCallback = () => {
-      stopVisualizer();
-      if (audioCtx) audioCtx.close();
-    };
   }
 }
 
