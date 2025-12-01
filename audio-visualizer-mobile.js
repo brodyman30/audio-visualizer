@@ -64,8 +64,9 @@ class AudioVisualizer extends HTMLElement {
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
 
-    let audioCtx, analyser;
+    let audioCtx, analyser, source;
     let isAnimating = false;
+    let isSourceConnected = false; // ✅ Track if source is connected
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
@@ -102,59 +103,75 @@ class AudioVisualizer extends HTMLElement {
     }
 
     cover.addEventListener('click', async () => {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-
-        if (audio.captureStream) {
-          const stream = audio.captureStream();
-          const source = audioCtx.createMediaStreamSource(stream);
-          source.connect(analyser);
+      try {
+        // ✅ Initialize AudioContext only once
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 256;
         }
-      }
 
-      if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-      }
-
-      if (audio.paused) {
-        await audio.play(); // ✅ audio element drives playback
-        bars.forEach(bar => (bar.style.opacity = '1'));
-        animate();
-
-        // ✅ Media Session metadata and handlers
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: 'Wildcat 91.9',
-            artist: 'You Belong.',
-            album: 'Live Stream',
-            artwork: [
-              {
-                src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
-                sizes: '512x512',
-                type: 'image/png'
-              }
-            ]
-          });
-
-          navigator.mediaSession.setActionHandler('play', async () => {
-            await audio.play();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
-            bars.forEach(bar => (bar.style.opacity = '1'));
-            animate();
-          });
-
-          navigator.mediaSession.setActionHandler('pause', () => {
-            audio.pause();
-            bars.forEach(bar => (bar.style.opacity = '0'));
-            resetBars();
-          });
+        // ✅ Create and connect source only once - SAFARI COMPATIBLE
+        if (!isSourceConnected) {
+          try {
+            // Use createMediaElementSource instead of captureStream
+            // This works on ALL browsers including Safari (iOS and macOS)
+            source = audioCtx.createMediaElementSource(audio);
+            source.connect(analyser);
+            // ✅ CRITICAL: Connect analyser to destination so audio plays
+            analyser.connect(audioCtx.destination);
+            isSourceConnected = true;
+          } catch (error) {
+            console.error('Error connecting audio source:', error);
+            // Fallback: audio will play but visualizer won't work
+          }
         }
-      } else {
-        audio.pause();
-        bars.forEach(bar => (bar.style.opacity = '0'));
-        resetBars();
+
+        // ✅ Resume AudioContext if suspended (required on iOS)
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
+
+        if (audio.paused) {
+          await audio.play(); // ✅ audio element drives playback
+          bars.forEach(bar => (bar.style.opacity = '1'));
+          animate();
+
+          // ✅ Media Session metadata and handlers
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: 'Wildcat 91.9',
+              artist: 'You Belong.',
+              album: 'Live Stream',
+              artwork: [
+                {
+                  src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png',
+                  sizes: '512x512',
+                  type: 'image/png'
+                }
+              ]
+            });
+
+            navigator.mediaSession.setActionHandler('play', async () => {
+              await audio.play();
+              if (audioCtx.state === 'suspended') await audioCtx.resume();
+              bars.forEach(bar => (bar.style.opacity = '1'));
+              animate();
+            });
+
+            navigator.mediaSession.setActionHandler('pause', () => {
+              audio.pause();
+              bars.forEach(bar => (bar.style.opacity = '0'));
+              resetBars();
+            });
+          }
+        } else {
+          audio.pause();
+          bars.forEach(bar => (bar.style.opacity = '0'));
+          resetBars();
+        }
+      } catch (error) {
+        console.error('Error in audio playback:', error);
       }
     });
   }
