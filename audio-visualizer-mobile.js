@@ -51,10 +51,11 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
+        /* Anchor bolts to logo’s top-right corner */
         .bolt {
           position: absolute;
-          top: 58%;
-          left: 50%;
+          top: calc(58% - 75px);  /* logo center minus half logo height */
+          left: calc(50% + 75px); /* logo center plus half logo width */
           width: 40px;
           height: 40px;
           opacity: 0;
@@ -75,7 +76,7 @@ class AudioVisualizer extends HTMLElement {
           }
           70% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(80px, -80px);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(60px, -60px);
           }
           100% {
             opacity: 0;
@@ -171,7 +172,7 @@ class AudioVisualizer extends HTMLElement {
     }
 
     function shootBolt(bolt) {
-      const angle = Math.floor(Math.random() * 60 - 30); // -30° to +30°
+      const angle = Math.floor(Math.random() * 60 - 30); // -30° to +30° spread
       bolt.style.setProperty('--angle', `${angle}deg`);
       bolt.style.animation = 'none';
       bolt.offsetHeight;
