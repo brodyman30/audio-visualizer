@@ -98,9 +98,119 @@ class AudioVisualizer extends HTMLElement {
         </div>
       </div>
     `;
-    // JS logic unchanged...
+
+    const audio = this.querySelector('#audio');
+    const logo = this.querySelector('#logo');
+    const bars = this.querySelectorAll('#visualizer-circle .bar');
+    const bolts = this.querySelectorAll('#bolts .bolt');
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    let audioCtx = null;
+    let analyser = null;
+    let androidLoopId = null;
+    let iosIntervalId = null;
+
+    // Position bars radially
+    bars.forEach((bar, i) => {
+      const angleDeg = (i / bars.length) * 360;
+      bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
+    });
+
+    // Android/desktop visualizer loop
+    const bufferLength = 128;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function startAndroidVisualizer() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        const source = audioCtx.createMediaElementSource(audio);
+        source.connect(analyser);
+        source.connect(audioCtx.destination);
+      }
+
+      bars.forEach(bar => (bar.style.opacity = '1'));
+
+      function loop() {
+        analyser.getByteFrequencyData(dataArray);
+
+        const halfBars = bars.length / 2;
+        bars.forEach((bar, i) => {
+          const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
+          const value = dataArray[binIdx] || 0;
+          const scale = Math.max(value / 128, 0.5);
+          const angleDeg = (i / bars.length) * 360;
+          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
+        });
+
+        androidLoopId = requestAnimationFrame(loop);
+      }
+
+      loop();
+    }
+
+    // iOS bolts
+    function shootBolt(bolt) {
+      const angle = Math.random() * 360;
+      const distance = 80;
+      bolt.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${distance}px)`;
+      bolt.style.opacity = 1;
+
+      const img = bolt.querySelector('img');
+      img.style.animation = 'none';
+      img.offsetHeight;
+      img.style.animation = 'lightningPulse 0.3s ease-in-out';
+
+      setTimeout(() => (bolt.style.opacity = 0), 300);
+    }
+
+    function startIOSBolts() {
+      if (iosIntervalId) return;
+      iosIntervalId = setInterval(() => {
+        const bolt = bolts[Math.floor(Math.random() * bolts.length)];
+        shootBolt(bolt);
+      }, 500);
+    }
+
+    function stopIOSBolts() {
+      if (!iosIntervalId) return;
+      clearInterval(iosIntervalId);
+      iosIntervalId = null;
+      bolts.forEach(b => (b.style.opacity = 0));
+    }
+
+    function pauseCleanup() {
+      bars.forEach(bar => (bar.style.opacity = '0'));
+      if (androidLoopId) {
+        cancelAnimationFrame(androidLoopId);
+        androidLoopId = null;
+      }
+      stopIOSBolts();
+    }
+
+    logo.addEventListener('click', async () => {
+      if (audio.paused) {
+        await audio.play();
+        if (isIOS) {
+          startIOSBolts();
+        } else {
+          if (audioCtx && audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+          }
+          startAndroidVisualizer();
+        }
+      } else {
+        audio.pause();
+        pauseCleanup();
+      }
+    });
   }
 }
+
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
