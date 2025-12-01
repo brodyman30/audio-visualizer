@@ -55,7 +55,7 @@ class AudioVisualizer extends HTMLElement {
         .bolt {
           position: absolute;
           top: calc(58% - 75px);  /* logo center minus half logo height */
-          left: calc(50% + 55px); /* logo center plus half logo width */
+          left: calc(50% + 75px); /* logo center plus half logo width */
           width: 40px;
           height: 40px;
           opacity: 0;
@@ -74,13 +74,13 @@ class AudioVisualizer extends HTMLElement {
             opacity: 1;
             transform: translate(-50%, -50%) rotate(var(--angle)) translate(0, 0);
           }
-          70% {
+          60% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(60px, -60px);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--dist1), var(--dist2));
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(100px, -100px);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--dist3), var(--dist4));
           }
         }
       </style>
@@ -172,11 +172,21 @@ class AudioVisualizer extends HTMLElement {
     }
 
     function shootBolt(bolt) {
-      const angle = Math.floor(Math.random() * 60 - 30); // -30° to +30° spread
+      const angle = Math.floor(Math.random() * 120 - 60); // wider spread
+      const dist1 = Math.floor(Math.random() * 60 + 40);
+      const dist2 = -Math.floor(Math.random() * 60 + 40);
+      const dist3 = dist1 + Math.floor(Math.random() * 40 + 20);
+      const dist4 = dist2 - Math.floor(Math.random() * 40 + 20);
+
       bolt.style.setProperty('--angle', `${angle}deg`);
+      bolt.style.setProperty('--dist1', `${dist1}px`);
+      bolt.style.setProperty('--dist2', `${dist2}px`);
+      bolt.style.setProperty('--dist3', `${dist3}px`);
+      bolt.style.setProperty('--dist4', `${dist4}px`);
+
       bolt.style.animation = 'none';
       bolt.offsetHeight;
-      bolt.style.animation = 'boltShoot 1s ease-out forwards';
+      bolt.style.animation = 'boltShoot 1.2s ease-out forwards';
     }
 
     function startIOSBolts() {
@@ -184,7 +194,7 @@ class AudioVisualizer extends HTMLElement {
       iosIntervalId = setInterval(() => {
         const bolt = bolts[Math.floor(Math.random() * bolts.length)];
         shootBolt(bolt);
-      }, 400);
+      }, Math.floor(Math.random() * 300 + 400)); // random interval 400–700ms
     }
 
     function stopIOSBolts() {
@@ -223,6 +233,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
