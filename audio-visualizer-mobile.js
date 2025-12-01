@@ -229,6 +229,14 @@ class AudioVisualizer extends HTMLElement {
         console.error('Error in audio playback:', error);
       }
     });
+
+    // Clean up on disconnect
+    this.disconnectedCallback = () => {
+      stopVisualizer();
+      if (audioCtx) {
+        audioCtx.close();
+      }
+    };
   }
 }
 
