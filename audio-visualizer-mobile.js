@@ -106,6 +106,13 @@ class AudioVisualizer extends HTMLElement {
       });
     }
 
+    // Resume visualizer automatically when app becomes visible again
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && !audio.paused && analyser) {
+        animate();
+      }
+    });
+
     cover.addEventListener('click', async () => {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -117,9 +124,10 @@ class AudioVisualizer extends HTMLElement {
           const source = audioCtx.createMediaStreamSource(stream);
           source.connect(analyser);
         } else {
+          // Safari fallback: connect to analyser AND destination so audio is audible
           const source = audioCtx.createMediaElementSource(audio);
           source.connect(analyser);
-          source.connect(audioCtx.destination); // ✅ Safari fallback
+          source.connect(audioCtx.destination);
         }
       }
 
@@ -144,6 +152,19 @@ class AudioVisualizer extends HTMLElement {
                 type: 'image/png'
               }
             ]
+          });
+
+          navigator.mediaSession.setActionHandler('play', async () => {
+            await audio.play();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            bars.forEach(bar => (bar.style.opacity = '1'));
+            animate();
+          });
+
+          navigator.mediaSession.setActionHandler('pause', () => {
+            audio.pause();
+            bars.forEach(bar => (bar.style.opacity = '0'));
+            resetBars();
           });
         }
       } else {
