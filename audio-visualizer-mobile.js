@@ -74,18 +74,12 @@ class AudioVisualizer extends HTMLElement {
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(0, 0);
+            transform: translate(-50%, -50%) translate(0, 0);
           }
           100% {
             opacity: 0;
-            transform: translate(60px, -60px); /* outward to top-right */
+            transform: translate(-50%, -50%) translate(60px, -60px);
           }
-        }
-
-        @keyframes lightningPulse {
-          0%   { filter: drop-shadow(0 0 2px #fdc259); }
-          50%  { filter: drop-shadow(0 0 12px #fdc259); }
-          100% { filter: drop-shadow(0 0 2px #fdc259); }
         }
       </style>
 
@@ -180,10 +174,9 @@ class AudioVisualizer extends HTMLElement {
 
     // iOS bolts
     function shootBolt(bolt) {
-      const img = bolt.querySelector('img');
-      img.style.animation = 'none';
-      img.offsetHeight; // force reflow
-      img.style.animation = 'boltShoot 0.8s ease-out forwards, lightningPulse 0.8s ease-out';
+      bolt.style.animation = 'none';
+      bolt.offsetHeight; // force reflow
+      bolt.style.animation = 'boltShoot 0.8s ease-out forwards';
     }
 
     function startIOSBolts() {
@@ -230,6 +223,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
