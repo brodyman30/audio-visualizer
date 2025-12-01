@@ -1,6 +1,6 @@
 /**
  * Audio Visualizer - Fixed for ALL Devices
- * Full circle with mirrored bars on left and right
+ * Full circle with bars mirrored on both sides (same bars, different positions)
  */
 
 class AudioVisualizer extends HTMLElement {
@@ -34,7 +34,7 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 12px;
           object-fit: contain;
           pointer-events: none;
-         
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .visualizer-circle {
           position: absolute;
@@ -60,9 +60,6 @@ class AudioVisualizer extends HTMLElement {
 
       <div class="container">
         <div class="visualizer-circle" id="visualizer-circle">
-          <!-- Left side bars (0-47) -->
-          ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
-          <!-- Right side bars (48-95) -->
           ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
         </div>
         <div class="cover" id="cover">
@@ -82,18 +79,9 @@ class AudioVisualizer extends HTMLElement {
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
-    // Position bars radially - FULL 360 degrees
+    // Position bars radially - mirrored on BOTH sides (full 360 degrees)
     bars.forEach((bar, i) => {
-      // Left side: bars 0-47 (angles 90 to 270)
-      // Right side: bars 48-95 (angles 270 to 450, which is -90 to 90)
-      let angleDeg;
-      if (i < 48) {
-        // Left side: 90 to 270 degrees
-        angleDeg = 90 + (i / 48) * 180;
-      } else {
-        // Right side: 270 to 450 degrees (or -90 to 90)
-        angleDeg = 270 + ((i - 48) / 48) * 180;
-      }
+      const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
@@ -108,22 +96,10 @@ class AudioVisualizer extends HTMLElement {
 
       analyser.getByteFrequencyData(dataArray);
       bars.forEach((bar, i) => {
-        let binIdx;
-        let angleDeg;
-        
-        if (i < 48) {
-          // Left side bars - use first half of frequency data
-          binIdx = Math.floor((i / 48) * (bufferLength / 2));
-          angleDeg = 90 + (i / 48) * 180;
-        } else {
-          // Right side bars - use second half of frequency data (mirrored)
-          const rightIndex = i - 48;
-          binIdx = Math.floor((rightIndex / 48) * (bufferLength / 2)) + (bufferLength / 2);
-          angleDeg = 270 + ((i - 48) / 48) * 180;
-        }
-
+        const binIdx = Math.floor((i / bars.length) * bufferLength);
         const value = dataArray[binIdx] || 0;
         const scale = Math.max(value / 128, 0.5);
+        const angleDeg = (i / bars.length) * 360;
         bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
       });
 
@@ -145,12 +121,7 @@ class AudioVisualizer extends HTMLElement {
 
     function resetBars() {
       bars.forEach((bar, i) => {
-        let angleDeg;
-        if (i < 48) {
-          angleDeg = 90 + (i / 48) * 180;
-        } else {
-          angleDeg = 270 + ((i - 48) / 48) * 180;
-        }
+        const angleDeg = (i / bars.length) * 360;
         bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
       });
     }
