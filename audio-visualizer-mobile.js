@@ -66,7 +66,8 @@ class AudioVisualizer extends HTMLElement {
 
     let audioCtx, analyser, source;
     let isAnimating = false;
-    let isSourceConnected = false; // ✅ Track if source is connected
+    let isSourceConnected = false;
+    let usesCaptureStream = false; // Track which method we're using
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
