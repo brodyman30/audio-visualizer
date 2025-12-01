@@ -8,6 +8,7 @@ class AudioVisualizer extends HTMLElement {
           height: 220px;
           overflow: visible;
         }
+
         .cover {
           position: absolute;
           top: 58%;
@@ -19,6 +20,7 @@ class AudioVisualizer extends HTMLElement {
           transform: translate(-50%, -50%);
           -webkit-tap-highlight-color: transparent;
         }
+
         .cover img {
           width: 100%;
           height: 100%;
@@ -26,6 +28,7 @@ class AudioVisualizer extends HTMLElement {
           object-fit: contain;
           pointer-events: none;
         }
+
         .visualizer-circle {
           position: absolute;
           top: 0;
@@ -34,6 +37,7 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           pointer-events: none;
         }
+
         .bar {
           position: absolute;
           top: 50%;
@@ -83,7 +87,6 @@ class AudioVisualizer extends HTMLElement {
 
         const halfBars = bars.length / 2;
         bars.forEach((bar, i) => {
-          // ✅ Mirror bins so both halves animate evenly
           const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
@@ -116,7 +119,7 @@ class AudioVisualizer extends HTMLElement {
         } else {
           const source = audioCtx.createMediaElementSource(audio);
           source.connect(analyser);
-          // no need to connect to destination, audio element already plays sound
+          source.connect(audioCtx.destination); // ✅ Safari fallback
         }
       }
 
@@ -141,19 +144,6 @@ class AudioVisualizer extends HTMLElement {
                 type: 'image/png'
               }
             ]
-          });
-
-          navigator.mediaSession.setActionHandler('play', async () => {
-            await audio.play();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
-            bars.forEach(bar => (bar.style.opacity = '1'));
-            animate();
-          });
-
-          navigator.mediaSession.setActionHandler('pause', () => {
-            audio.pause();
-            bars.forEach(bar => (bar.style.opacity = '0'));
-            resetBars();
           });
         }
       } else {
