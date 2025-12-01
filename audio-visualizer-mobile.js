@@ -10,17 +10,24 @@ class AudioVisualizer extends HTMLElement {
           overflow: visible;
         }
 
-        /* Tap target */
-        .cover {
+        /* Logo (always visible) */
+        .logo {
           position: absolute;
           top: 50%;
           left: 50%;
+          width: 150px;
+          height: 150px;
+          transform: translate(-50%, -50%);
+          z-index: 2;
+          cursor: pointer;
+        }
+
+        .logo img {
           width: 100%;
           height: 100%;
-          cursor: pointer;
-          transform: translate(-50%, -50%);
-          -webkit-tap-highlight-color: transparent;
-          z-index: 2;
+          border-radius: 12px;
+          object-fit: contain;
+          pointer-events: none;
         }
 
         /* Bar visualizer (Android/desktop path) */
@@ -62,30 +69,55 @@ class AudioVisualizer extends HTMLElement {
           position: absolute;
           bottom: 50%;
           left: 50%;
-          width: 2px;
-          height: 60px;
-          background: linear-gradient(to top, #fdc259, #ffffff);
+          width: 40px;
+          height: 40px;
           opacity: 0;
-          transform-origin: bottom center;
-          border-radius: 2px;
-          box-shadow: 0 0 8px #fdc259;
+          transform-origin: center;
+        }
+
+        .bolt img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          filter: drop-shadow(0 0 6px #fdc259);
+        }
+
+        /* Glow pulse animation */
+        @keyframes lightningPulse {
+          0%   { opacity: 0; filter: drop-shadow(0 0 2px #fdc259); }
+          30%  { opacity: 1; filter: drop-shadow(0 0 12px #fdc259); }
+          60%  { opacity: 1; filter: drop-shadow(0 0 20px #ffffff); }
+          100% { opacity: 0; filter: drop-shadow(0 0 2px #fdc259); }
         }
       </style>
 
       <div class="container">
+        <!-- Bars (Android/desktop) -->
         <div class="visualizer-circle" id="visualizer-circle">
           ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
         </div>
-        <div class="cover" id="cover"></div>
+
+        <!-- Logo (always visible) -->
+        <div class="logo" id="logo">
+          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Logo" />
+        </div>
+
+        <!-- Audio -->
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
+
+        <!-- Bolts (iOS) -->
         <div id="bolts">
-          ${Array.from({ length: 6 }, () => '<div class="bolt"></div>').join('')}
+          ${Array.from({ length: 6 }, () => `
+            <div class="bolt">
+              <img src="https://static.wixstatic.com/shapes/eaaa6a_3307af24f68941bfaa446785b9f2b16a.svg" />
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
 
     const audio = this.querySelector('#audio');
-    const cover = this.querySelector('#cover');
+    const logo = this.querySelector('#logo');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
     const bolts = this.querySelectorAll('#bolts .bolt');
 
@@ -142,9 +174,15 @@ class AudioVisualizer extends HTMLElement {
     // iOS lightning bolts
     function shootBolt(bolt) {
       const angle = Math.random() * 360;
-      bolt.style.transform = `rotate(${angle}deg) translateY(-40px)`;
+      bolt.style.transform = `rotate(${angle}deg) translate(0, -60px)`;
       bolt.style.opacity = 1;
-      setTimeout(() => (bolt.style.opacity = 0), 260);
+
+      const img = bolt.querySelector('img');
+      img.style.animation = 'none';
+      img.offsetHeight; // force reflow
+      img.style.animation = 'lightningPulse 0.3s ease-in-out';
+
+      setTimeout(() => (bolt.style.opacity = 0), 300);
     }
 
     function startIOSBolts() {
@@ -152,7 +190,7 @@ class AudioVisualizer extends HTMLElement {
       iosIntervalId = setInterval(() => {
         const bolt = bolts[Math.floor(Math.random() * bolts.length)];
         shootBolt(bolt);
-      }, 480);
+      }, 500);
     }
 
     function stopIOSBolts() {
@@ -173,7 +211,7 @@ class AudioVisualizer extends HTMLElement {
     }
 
     // Play/pause toggle
-    cover.addEventListener('click', async () => {
+    logo.addEventListener('click', async () => {
       if (audio.paused) {
         await audio.play();
 
