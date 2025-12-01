@@ -147,7 +147,22 @@ class AudioVisualizer extends HTMLElement {
           bars.forEach(bar => (bar.style.opacity = '1'));
           animate();
 
-          // ✅ Media Session metadata and handlers
+          // ✅ Keep audio context alive for background playback
+          // Handle visibility changes to maintain audio context
+          if (!usesCaptureStream) {
+            // Only needed for Safari createMediaElementSource path
+            const keepAlive = () => {
+              if (audioCtx && audioCtx.state === 'suspended' && !audio.paused) {
+                audioCtx.resume().catch(err => console.log('Resume failed:', err));
+              }
+            };
+            
+            document.addEventListener('visibilitychange', keepAlive);
+            document.addEventListener('resume', keepAlive);
+            window.addEventListener('focus', keepAlive);
+          }
+
+          // ✅ Media Session metadata and handlers for lock screen controls
           if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: 'Wildcat 91.9',
@@ -164,7 +179,7 @@ class AudioVisualizer extends HTMLElement {
 
             navigator.mediaSession.setActionHandler('play', async () => {
               await audio.play();
-              if (audioCtx.state === 'suspended') await audioCtx.resume();
+              if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
               bars.forEach(bar => (bar.style.opacity = '1'));
               animate();
             });
