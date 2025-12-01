@@ -8,10 +8,9 @@ class AudioVisualizer extends HTMLElement {
           height: 220px;
         }
 
-        /* Centered logo */
         .logo {
           position: absolute;
-          top: 58%; /* your preferred offset */
+          top: 58%;
           left: 50%;
           width: 150px;
           height: 150px;
@@ -28,7 +27,6 @@ class AudioVisualizer extends HTMLElement {
           pointer-events: none;
         }
 
-        /* Bars and bolts share same center */
         .visualizer-circle,
         #bolts {
           position: absolute;
@@ -55,34 +53,33 @@ class AudioVisualizer extends HTMLElement {
 
         .bolt {
           position: absolute;
-          top: 58%; /* match logo vertical offset */
+          top: 58%;
           left: 50%;
           width: 40px;
           height: 40px;
           opacity: 0;
-          transform: translate(-50%, -50%) rotate(90deg); /* sideways orientation */
+          transform: translate(-50%, -50%);
         }
 
         .bolt img {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          filter: drop-shadow(0 0 12px #fdc259); /* stronger glow */
+          filter: drop-shadow(0 0 12px #fdc259);
         }
 
-        /* Smooth outward fade animation from top-right */
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(90deg) translate(0, 0);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(0, 0);
           }
           70% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(90deg) translate(80px, -80px);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(80px, -80px);
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(90deg) translate(100px, -100px);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(100px, -100px);
           }
         }
       </style>
@@ -120,7 +117,6 @@ class AudioVisualizer extends HTMLElement {
     let androidLoopId = null;
     let iosIntervalId = null;
 
-    // Media Session metadata
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'You Belong.',
@@ -135,13 +131,11 @@ class AudioVisualizer extends HTMLElement {
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
     }
 
-    // Position bars radially
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
-    // Android/desktop visualizer loop
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
@@ -176,10 +170,11 @@ class AudioVisualizer extends HTMLElement {
       loop();
     }
 
-    // iOS bolts
     function shootBolt(bolt) {
+      const angle = Math.floor(Math.random() * 60 - 30); // -30° to +30°
+      bolt.style.setProperty('--angle', `${angle}deg`);
       bolt.style.animation = 'none';
-      bolt.offsetHeight; // force reflow
+      bolt.offsetHeight;
       bolt.style.animation = 'boltShoot 1s ease-out forwards';
     }
 
@@ -188,7 +183,7 @@ class AudioVisualizer extends HTMLElement {
       iosIntervalId = setInterval(() => {
         const bolt = bolts[Math.floor(Math.random() * bolts.length)];
         shootBolt(bolt);
-      }, 600);
+      }, 400);
     }
 
     function stopIOSBolts() {
@@ -227,6 +222,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
