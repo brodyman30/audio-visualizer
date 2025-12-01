@@ -83,7 +83,7 @@ class AudioVisualizer extends HTMLElement {
 
         const halfBars = bars.length / 2;
         bars.forEach((bar, i) => {
-          // ✅ Mirror bins so both halves animate evenly
+          // ✅ Mirror bins: both halves use same lower-frequency bins
           const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
           const value = dataArray[binIdx] || 0;
           const scale = Math.max(value / 128, 0.5);
