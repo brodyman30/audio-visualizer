@@ -161,12 +161,15 @@ class AudioVisualizer extends HTMLElement {
               source.connect(analyser);
               console.log('✅ Using captureStream - optimal method');
             } else {
-              // Safari path - createMediaElementSource
-              // Audio will play in background via Media Session API
+              // For Chrome/Firefox:
+              source = audioCtx.createMediaStreamSource(stream);
+              source.connect(analyser);
+              analyser.connect(audioCtx.destination);  // Audio goes OUT
+              
+              // For Safari:
               source = audioCtx.createMediaElementSource(audio);
               source.connect(analyser);
-              analyser.connect(audioCtx.destination);
-              console.log('✅ Using createMediaElementSource - Safari mode');
+              analyser.connect(audioCtx.destination);  // MUST have this line!
             }
             isSourceConnected = true;
           } catch (error) {
