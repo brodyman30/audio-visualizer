@@ -151,57 +151,44 @@ class AudioVisualizer extends HTMLElement {
           analyser.fftSize = 256;
         }
 
-        // ✅ Create and connect source only once - SAFARI COMPATIBLE WITH BACKGROUND AUDIO
+        // ✅ Create and connect source only once
         if (!isSourceConnected) {
           try {
-            // Try captureStream first (better for background audio on iOS)
+            // Try captureStream first (Chrome/Firefox - best approach)
             if (typeof audio.captureStream === 'function') {
-              // Chrome/Firefox path - maintains independent audio playback
               const stream = audio.captureStream();
               source = audioCtx.createMediaStreamSource(stream);
               source.connect(analyser);
-              usesCaptureStream = true;
-              console.log('Using captureStream (background audio preserved)');
+              console.log('✅ Using captureStream - optimal method');
             } else {
-              // Safari path - requires routing through Web Audio API
+              // Safari path - createMediaElementSource
+              // Audio will play in background via Media Session API
               source = audioCtx.createMediaElementSource(audio);
               source.connect(analyser);
               analyser.connect(audioCtx.destination);
-              console.log('Using createMediaElementSource (Safari mode)');
+              console.log('✅ Using createMediaElementSource - Safari mode');
             }
             isSourceConnected = true;
           } catch (error) {
             console.error('Error connecting audio source:', error);
-            // Fallback: audio will play but visualizer won't work
           }
         }
 
-        // ✅ Resume AudioContext if suspended (required on iOS)
+        // ✅ Resume AudioContext if suspended
         if (audioCtx.state === 'suspended') {
           await audioCtx.resume();
         }
 
         if (audio.paused) {
-          await audio.play(); // ✅ audio element drives playback
+          await audio.play();
           bars.forEach(bar => (bar.style.opacity = '1'));
-          animate();
-
-          // ✅ Keep audio context alive for background playback
-          // Handle visibility changes to maintain audio context
-          if (!usesCaptureStream) {
-            // Only needed for Safari createMediaElementSource path
-            const keepAlive = () => {
-              if (audioCtx && audioCtx.state === 'suspended' && !audio.paused) {
-                audioCtx.resume().catch(err => console.log('Resume failed:', err));
-              }
-            };
-            
-            document.addEventListener('visibilitychange', keepAlive);
-            document.addEventListener('resume', keepAlive);
-            window.addEventListener('focus', keepAlive);
+          
+          // Start visualizer only if screen is on
+          if (!document.hidden) {
+            startVisualizer();
           }
 
-          // ✅ Media Session metadata and handlers for lock screen controls
+          // ✅ Media Session API - enables lock screen controls and background playback
           if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: 'Wildcat 91.9',
@@ -220,18 +207,22 @@ class AudioVisualizer extends HTMLElement {
               await audio.play();
               if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
               bars.forEach(bar => (bar.style.opacity = '1'));
-              animate();
+              if (!document.hidden) {
+                startVisualizer();
+              }
             });
 
             navigator.mediaSession.setActionHandler('pause', () => {
               audio.pause();
               bars.forEach(bar => (bar.style.opacity = '0'));
+              stopVisualizer();
               resetBars();
             });
           }
         } else {
           audio.pause();
           bars.forEach(bar => (bar.style.opacity = '0'));
+          stopVisualizer();
           resetBars();
         }
       } catch (error) {
