@@ -112,15 +112,24 @@ class AudioVisualizer extends HTMLElement {
           analyser.fftSize = 256;
         }
 
-        // ✅ Create and connect source only once - SAFARI COMPATIBLE
+        // ✅ Create and connect source only once - SAFARI COMPATIBLE WITH BACKGROUND AUDIO
         if (!isSourceConnected) {
           try {
-            // Use createMediaElementSource instead of captureStream
-            // This works on ALL browsers including Safari (iOS and macOS)
-            source = audioCtx.createMediaElementSource(audio);
-            source.connect(analyser);
-            // ✅ CRITICAL: Connect analyser to destination so audio plays
-            analyser.connect(audioCtx.destination);
+            // Try captureStream first (better for background audio on iOS)
+            if (typeof audio.captureStream === 'function') {
+              // Chrome/Firefox path - maintains independent audio playback
+              const stream = audio.captureStream();
+              source = audioCtx.createMediaStreamSource(stream);
+              source.connect(analyser);
+              usesCaptureStream = true;
+              console.log('Using captureStream (background audio preserved)');
+            } else {
+              // Safari path - requires routing through Web Audio API
+              source = audioCtx.createMediaElementSource(audio);
+              source.connect(analyser);
+              analyser.connect(audioCtx.destination);
+              console.log('Using createMediaElementSource (Safari mode)');
+            }
             isSourceConnected = true;
           } catch (error) {
             console.error('Error connecting audio source:', error);
