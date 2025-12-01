@@ -46,33 +46,17 @@ class AudioVisualizer extends HTMLElement {
           transition: opacity 0.3s ease;
           border-radius: 50px;
         }
-        .overlay {
+        .bolt {
           position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          background: rgba(0,0,0,0.6);
-          color: #fff;
-          font-size: 14px;
-          text-align: center;
-          border-radius: 12px;
-          z-index: 2;
-          padding: 10px;
-        }
-        .overlay button {
-          margin-top: 10px;
-          padding: 6px 12px;
-          background: #fdc259;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 13px;
-          color: #000;
+          bottom: 50%;
+          left: 50%;
+          width: 2px;
+          height: 60px;
+          background: linear-gradient(to top, #fdc259, #fff);
+          opacity: 0;
+          transform-origin: bottom center;
+          border-radius: 2px;
+          box-shadow: 0 0 8px #fdc259;
         }
       </style>
 
@@ -81,12 +65,11 @@ class AudioVisualizer extends HTMLElement {
           ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
         </div>
         <div class="cover" id="cover">
-          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Cover" />
+          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Tower" />
         </div>
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
-        <div class="overlay" id="overlay" style="display:none;">
-          <div>Visualizer not available on this device</div>
-          <button id="dismiss">Dismiss</button>
+        <div id="bolts">
+          ${Array.from({ length: 6 }, () => '<div class="bolt"></div>').join('')}
         </div>
       </div>
     `;
@@ -94,12 +77,15 @@ class AudioVisualizer extends HTMLElement {
     const audio = this.querySelector('#audio');
     const cover = this.querySelector('#cover');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
-    const overlay = this.querySelector('#overlay');
-    const dismissBtn = this.querySelector('#dismiss');
+    const bolts = this.querySelectorAll('#bolts .bolt');
 
     let audioCtx, analyser;
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
+
+    // Platform detection
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isAndroid = /Android/.test(navigator.userAgent);
 
     // Position bars radially
     bars.forEach((bar, i) => {
@@ -107,83 +93,54 @@ class AudioVisualizer extends HTMLElement {
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
-    function animate() {
-      if (!analyser) {
-        overlay.style.display = 'flex';
-        return;
-      }
-      overlay.style.display = 'none';
-
-      function loop() {
-        if (document.hidden) return;
-        analyser.getByteFrequencyData(dataArray);
-
-        const halfBars = bars.length / 2;
-        bars.forEach((bar, i) => {
-          const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
-          const value = dataArray[binIdx] || 0;
-          const scale = Math.max(value / 128, 0.5);
-          const angleDeg = (i / bars.length) * 360;
-          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
-        });
-
-        requestAnimationFrame(loop);
-      }
-      loop();
+    // Lightning bolt animation for iOS
+    function shootBolt(bolt) {
+      const angle = Math.random() * 360;
+      bolt.style.transform = `rotate(${angle}deg) translateY(-40px)`;
+      bolt.style.opacity = 1;
+      setTimeout(() => (bolt.style.opacity = 0), 300);
+    }
+    function iosLoop() {
+      setInterval(() => {
+        const bolt = bolts[Math.floor(Math.random() * bolts.length)];
+        shootBolt(bolt);
+      }, 500);
     }
 
-    function resetBars() {
+    // Bar visualizer animation for Android
+    function androidLoop() {
+      analyser.getByteFrequencyData(dataArray);
+      const halfBars = bars.length / 2;
       bars.forEach((bar, i) => {
+        const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
+        const value = dataArray[binIdx] || 0;
+        const scale = Math.max(value / 128, 0.5);
         const angleDeg = (i / bars.length) * 360;
-        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
       });
+      requestAnimationFrame(androidLoop);
     }
-
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && !audio.paused && analyser) {
-        animate();
-      }
-    });
 
     cover.addEventListener('click', async () => {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-
-        if (typeof audio.captureStream === 'function') {
-          try {
-            const stream = audio.captureStream();
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
-          } catch (e) {
-            analyser = null;
-            overlay.style.display = 'flex';
-          }
-        } else {
-          analyser = null;
-          overlay.style.display = 'flex';
-        }
-      }
-
-      if (audioCtx && audioCtx.state === 'suspended') {
-        await audioCtx.resume();
-      }
-
       if (audio.paused) {
         await audio.play();
-        bars.forEach(bar => (bar.style.opacity = '1'));
-        if (analyser && !document.hidden) animate();
+
+        if (isIOS) {
+          iosLoop(); // run lightning bolts
+        } else if (isAndroid) {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            const source = audioCtx.createMediaElementSource(audio);
+            source.connect(analyser);
+            source.connect(audioCtx.destination);
+          }
+          androidLoop(); // run analyser bars
+        }
       } else {
         audio.pause();
-        bars.forEach(bar => (bar.style.opacity = '0'));
-        resetBars();
       }
-    });
-
-    // Dismiss overlay
-    dismissBtn.addEventListener('click', () => {
-      overlay.style.display = 'none';
     });
   }
 }
