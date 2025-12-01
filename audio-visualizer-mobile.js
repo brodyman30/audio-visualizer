@@ -119,26 +119,28 @@ class AudioVisualizer extends HTMLElement {
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
 
-        if (audio.captureStream) {
-          const stream = audio.captureStream();
-          const source = audioCtx.createMediaStreamSource(stream);
-          source.connect(analyser);
+        if (typeof audio.captureStream === 'function') {
+          try {
+            const stream = audio.captureStream();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+          } catch (e) {
+            analyser = null; // gracefully disable visualizer if captureStream fails
+          }
         } else {
-          // Safari fallback: connect to analyser AND destination so audio is audible
-          const source = audioCtx.createMediaElementSource(audio);
-          source.connect(analyser);
-          source.connect(audioCtx.destination);
+          // No captureStream support → skip visualizer to preserve background audio
+          analyser = null;
         }
       }
 
-      if (audioCtx.state === 'suspended') {
+      if (audioCtx && audioCtx.state === 'suspended') {
         await audioCtx.resume();
       }
 
       if (audio.paused) {
         await audio.play();
         bars.forEach(bar => (bar.style.opacity = '1'));
-        animate();
+        if (analyser && !document.hidden) animate();
 
         if ('mediaSession' in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
@@ -156,9 +158,9 @@ class AudioVisualizer extends HTMLElement {
 
           navigator.mediaSession.setActionHandler('play', async () => {
             await audio.play();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
             bars.forEach(bar => (bar.style.opacity = '1'));
-            animate();
+            if (analyser && !document.hidden) animate();
           });
 
           navigator.mediaSession.setActionHandler('pause', () => {
