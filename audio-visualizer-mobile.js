@@ -13,7 +13,7 @@ class AudioVisualizer extends HTMLElement {
         /* Logo (always visible) */
         .logo {
           position: absolute;
-          top: 58%;
+          top: 50%;
           left: 50%;
           width: 150px;
           height: 150px;
@@ -86,7 +86,7 @@ class AudioVisualizer extends HTMLElement {
         @keyframes lightningPulse {
           0%   { opacity: 0; filter: drop-shadow(0 0 2px #fdc259); }
           30%  { opacity: 1; filter: drop-shadow(0 0 12px #fdc259); }
-          60%  { opacity: 1; filter: drop-shadow(0 0 20px #ffffff); }
+          60%  { opacity: 1; filter: drop-shadow(0 0 20px #fdc259); }
           100% { opacity: 0; filter: drop-shadow(0 0 2px #fdc259); }
         }
       </style>
@@ -174,7 +174,7 @@ class AudioVisualizer extends HTMLElement {
     // iOS lightning bolts
     function shootBolt(bolt) {
       const angle = Math.random() * 360;
-      bolt.style.transform = `rotate(${angle}deg) translate(0, -60px)`;
+      bolt.style.transform = `rotate(${angle}deg) translate(0, -80px)`; // shoot outward
       bolt.style.opacity = 1;
 
       const img = bolt.querySelector('img');
