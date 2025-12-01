@@ -1,7 +1,11 @@
 /**
- * Audio Visualizer - Apple Device Compatible
- * Trade-off on iOS: Visualizer OR background audio (not both simultaneously on iOS Safari)
- * Other browsers: Both work perfectly
+ * Audio Visualizer - Optimal Solution for ALL Devices
+ * 
+ * Features:
+ * - Visualizer animates when screen is ON (all devices including iOS)
+ * - Audio continues when screen is OFF (background playback)
+ * - Lock screen controls work on iOS
+ * - Visualizer pauses when not visible (saves battery)
  */
 class AudioVisualizer extends HTMLElement {
   connectedCallback() {
