@@ -21,7 +21,7 @@
             color: white;
             font-size: 32px;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-align: center;
             text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
@@ -29,7 +29,7 @@
         .subtitle {
             color: rgba(255,255,255,0.9);
             font-size: 16px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             text-align: center;
         }
         
@@ -38,8 +38,9 @@
             font-size: 14px;
             margin-top: 30px;
             text-align: center;
-            max-width: 300px;
+            max-width: 400px;
             line-height: 1.6;
+            padding: 0 20px;
         }
         
         .badge {
@@ -50,26 +51,75 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            margin-top: 20px;
+            margin: 10px 5px;
             backdrop-filter: blur(10px);
+        }
+        
+        .warning {
+            background: rgba(255, 152, 0, 0.3);
+        }
+        
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .note {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-top: 20px;
+            max-width: 400px;
+            color: white;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="title">🎵 Audio Visualizer</div>
-    <div class="subtitle">Now compatible with Apple devices!</div>
+    <div class="subtitle">Background Audio Priority Version</div>
     
     <!-- The custom audio visualizer component -->
     <audio-visualizer-mobile></audio-visualizer-mobile>
     
     <div class="info">
         Click on the cover image to play/pause the audio stream. 
-        The visualizer now works on iOS Safari, macOS Safari, and all other browsers.
+        This version prioritizes background audio on iOS Safari.
     </div>
     
-    <div class="badge">✅ Safari Compatible</div>
+    <div class="badges-container">
+        <div class="badge success">✅ Chrome/Firefox: Full Features</div>
+        <div class="badge success">✅ iOS: Background Audio</div>
+        <div class="badge warning">⚠️ iOS: Static Visualizer</div>
+    </div>
     
-    <!-- Load the fixed visualizer script -->
+    <div class="note">
+        <strong>iOS Safari Behavior:</strong>
+        On iOS, the visualizer shows static bars (30% opacity) to preserve background audio playback. 
+        You can lock your screen or switch apps and audio will continue playing with lock screen controls.
+        <br><br>
+        On Chrome/Firefox/Edge, you get full animated visualizer + background audio!
+    </div>
+    
+    <!-- Load the background-priority visualizer script -->
+    <script src="audio-visualizer-mobile-background-priority.js"></script>
+    
+    <!-- To use visualizer-priority version instead (no background audio on iOS):
     <script src="audio-visualizer-mobile.js"></script>
+    -->
 </body>
 </html>
