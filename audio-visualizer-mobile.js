@@ -1,8 +1,7 @@
 /**
- * Audio Visualizer - Fixed for ALL Devices
- * Full circle with bars mirrored on both sides (same bars, different positions)
+ * Audio Visualizer - Full Circle
+ * Bars mirrored so both halves animate identically
  */
-
 class AudioVisualizer extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
@@ -78,25 +77,24 @@ class AudioVisualizer extends HTMLElement {
     const bufferLength = 256;
     const dataArray = new Uint8Array(bufferLength);
 
-    // Position bars radially - mirrored on BOTH sides (full 360 degrees)
+    // Position bars radially around full circle
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
     });
 
     function animate() {
-      // Only animate if page is visible (screen is on)
       if (document.hidden) {
         animationFrameId = null;
         return;
       }
-
       if (!analyser) return;
 
       analyser.getByteFrequencyData(dataArray);
+
       bars.forEach((bar, i) => {
-        // Map each bar to a unique frequency bin across the full spectrum
-        const binIdx = Math.floor((i / bars.length) * bufferLength);
+        // ✅ Mirror bins: use only first half of spectrum
+        const binIdx = Math.floor((i / bars.length) * (bufferLength / 2));
         const value = dataArray[binIdx] || 0;
         const scale = Math.max(value / 128, 0.5);
         const angleDeg = (i / bars.length) * 360;
@@ -126,71 +124,44 @@ class AudioVisualizer extends HTMLElement {
       });
     }
 
-    // Handle visibility changes - pause visualizer when screen is off, but keep audio playing
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         stopVisualizer();
-        console.log('🌙 Screen off - visualizer paused, audio continues');
       } else {
-        if (!audio.paused) {
-          startVisualizer();
-          console.log('☀️ Screen on - visualizer resumed');
-        }
+        if (!audio.paused) startVisualizer();
       }
     });
 
     cover.addEventListener('click', async () => {
       try {
-        // Initialize AudioContext only once
         if (!audioCtx) {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           analyser = audioCtx.createAnalyser();
           analyser.fftSize = 512;
-          console.log('✅ AudioContext initialized');
         }
 
-        // Create and connect source only once
         if (!isSourceConnected) {
-          try {
-            // Check if captureStream is available (Chrome/Firefox)
-            if (typeof audio.captureStream === 'function') {
-              const stream = audio.captureStream();
-              source = audioCtx.createMediaStreamSource(stream);
-              source.connect(analyser);
-              analyser.connect(audioCtx.destination);
-              console.log('✅ Using captureStream (Chrome/Firefox)');
-            } else {
-              // Safari fallback: createMediaElementSource
-              source = audioCtx.createMediaElementSource(audio);
-              source.connect(analyser);
-              analyser.connect(audioCtx.destination);
-              console.log('✅ Using createMediaElementSource (Safari)');
-            }
-            isSourceConnected = true;
-          } catch (error) {
-            console.error('❌ Error connecting audio source:', error.message);
-            return;
+          if (typeof audio.captureStream === 'function') {
+            const stream = audio.captureStream();
+            source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+          } else {
+            source = audioCtx.createMediaElementSource(audio);
+            source.connect(analyser);
+            source.connect(audioCtx.destination);
           }
+          isSourceConnected = true;
         }
 
-        // Resume AudioContext if suspended
         if (audioCtx.state === 'suspended') {
           await audioCtx.resume();
-          console.log('✅ AudioContext resumed');
         }
 
         if (audio.paused) {
-          // PLAY
           await audio.play();
           bars.forEach(bar => (bar.style.opacity = '1'));
-          
-          if (!document.hidden) {
-            startVisualizer();
-          }
+          if (!document.hidden) startVisualizer();
 
-          console.log('▶️ Playing');
-
-          // Media Session API
           if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: 'Wildcat 91.9',
@@ -207,12 +178,9 @@ class AudioVisualizer extends HTMLElement {
 
             navigator.mediaSession.setActionHandler('play', async () => {
               await audio.play();
-              if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+              if (audioCtx.state === 'suspended') await audioCtx.resume();
               bars.forEach(bar => (bar.style.opacity = '1'));
-              if (!document.hidden) {
-                startVisualizer();
-              }
-              console.log('▶️ Resumed from lock screen');
+              if (!document.hidden) startVisualizer();
             });
 
             navigator.mediaSession.setActionHandler('pause', () => {
@@ -220,31 +188,24 @@ class AudioVisualizer extends HTMLElement {
               bars.forEach(bar => (bar.style.opacity = '0'));
               stopVisualizer();
               resetBars();
-              console.log('⏸ Paused from lock screen');
             });
           }
         } else {
-          // PAUSE
           audio.pause();
           bars.forEach(bar => (bar.style.opacity = '0'));
           stopVisualizer();
           resetBars();
-          console.log('⏸ Paused');
         }
       } catch (error) {
         console.error('❌ Error in audio playback:', error.message);
       }
     });
 
-    // Clean up on disconnect
     this.disconnectedCallback = () => {
       stopVisualizer();
-      if (audioCtx) {
-        audioCtx.close();
-      }
+      if (audioCtx) audioCtx.close();
     };
   }
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
-
