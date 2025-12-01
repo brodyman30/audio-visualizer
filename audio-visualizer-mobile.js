@@ -7,17 +7,21 @@ class AudioVisualizer extends HTMLElement {
           position: relative;
           width: 220px;
           height: 220px;
-          overflow: visible;
         }
 
-        /* Logo (always visible) */
+        /* Center both logo and visualizer */
+        .visualizer-circle,
         .logo {
           position: absolute;
           top: 50%;
           left: 50%;
+          transform: translate(-50%, -50%);
+        }
+
+        /* Logo (always visible) */
+        .logo {
           width: 150px;
           height: 150px;
-          transform: translate(-50%, -50%);
           z-index: 2;
           cursor: pointer;
         }
@@ -32,9 +36,6 @@ class AudioVisualizer extends HTMLElement {
 
         /* Bar visualizer (Android/desktop path) */
         .visualizer-circle {
-          position: absolute;
-          top: 0;
-          left: 0;
           width: 100%;
           height: 100%;
           pointer-events: none;
@@ -43,7 +44,7 @@ class AudioVisualizer extends HTMLElement {
 
         .bar {
           position: absolute;
-          top: 58%;
+          top: 50%;
           left: 50%;
           width: 4px;
           height: 30px;
@@ -57,10 +58,11 @@ class AudioVisualizer extends HTMLElement {
         /* Lightning bolts (iOS path) */
         #bolts {
           position: absolute;
-          top: 0;
-          left: 0;
+          top: 50%;
+          left: 50%;
           width: 100%;
           height: 100%;
+          transform: translate(-50%, -50%);
           pointer-events: none;
           z-index: 0;
         }
