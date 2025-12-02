@@ -55,7 +55,7 @@ class AudioVisualizer extends HTMLElement {
         .bolt {
           position: absolute;
           top: calc(63% - 90px);  /* tower tip estimate */
-          left: 55%;
+          left: 65%;
           width: 40px;
           height: 40px;
           opacity: 0;
