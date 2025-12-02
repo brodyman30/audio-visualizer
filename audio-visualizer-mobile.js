@@ -51,16 +51,15 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to logo’s top-right corner (logo 150x150) */
+        /* Anchor bolts to tower tip (adjusted from logo center) */
         .bolt {
           position: absolute;
-          top: calc(58% - 75px);
-          left: calc(50% + 75px);
+          top: calc(58% - 90px);  /* tower tip estimate */
+          left: calc(50% + 10px); /* tower horizontal offset */
           width: 40px;
           height: 40px;
           opacity: 0;
           transform: translate(-50%, -50%);
-          will-change: transform, opacity;
         }
 
         .bolt img {
@@ -71,21 +70,18 @@ class AudioVisualizer extends HTMLElement {
           filter: drop-shadow(0 0 12px #fdc259);
         }
 
-        /* Single transform chain:
-           translate -> rotate(angle + assetOffset) -> translateX(distance)
-           translateX ensures motion is parallel to orientation */
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--assetOffset, 0deg))) translateX(0);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0);
           }
           60% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--assetOffset, 0deg))) translateX(var(--d1));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d1));
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--assetOffset, 0deg))) translateX(var(--d2));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d2));
           }
         }
       </style>
@@ -102,7 +98,7 @@ class AudioVisualizer extends HTMLElement {
         <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
 
         <div id="bolts">
-          ${Array.from({ length: 6 }, () => `
+          ${[0, 1, 2].map(() => `
             <div class="bolt">
               <img src="https://static.wixstatic.com/media/eaaa6a_0ce7ee88c3894941bcb1da72a58d1c0e~mv2.png" />
             </div>
@@ -123,7 +119,6 @@ class AudioVisualizer extends HTMLElement {
     let androidLoopId = null;
     let iosIntervalId = null;
 
-    /* Media Session */
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'You Belong.',
@@ -138,7 +133,6 @@ class AudioVisualizer extends HTMLElement {
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
     }
 
-    /* Bars layout */
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
@@ -178,18 +172,14 @@ class AudioVisualizer extends HTMLElement {
       loop();
     }
 
-    /* Optional: if your PNG’s long side is vertical, set a fixed offset to align it horizontally.
-       Try 0deg first; if the asset needs rotating, set to 90deg. */
-    const fixedAssetOffsetDeg = 0; // change to 90 if your bolt PNG is tall and should be rotated
+    const boltAngles = [-45, 0, 45]; // left, center, right burst
+    let boltIndex = 0;
 
-    function shootBolt(bolt) {
-      // Constrain angle to upward-right quadrant (negative angles prevent downward drift)
-      const angle = Math.floor(Math.random() * 90) - 90; // −90° to −0°
-      const d1 = Math.floor(Math.random() * 60 + 60);
-      const d2 = d1 + Math.floor(Math.random() * 60 + 40);
+    function shootBolt(bolt, angle) {
+      const d1 = Math.floor(Math.random() * 40 + 60);
+      const d2 = d1 + Math.floor(Math.random() * 40 + 40);
 
       bolt.style.setProperty('--angle', `${angle}deg`);
-      bolt.style.setProperty('--assetOffset', `${fixedAssetOffsetDeg}deg`);
       bolt.style.setProperty('--d1', `${d1}px`);
       bolt.style.setProperty('--d2', `${d2}px`);
 
@@ -206,9 +196,11 @@ class AudioVisualizer extends HTMLElement {
     function startIOSBolts() {
       if (iosIntervalId) return;
       iosIntervalId = setInterval(() => {
-        const bolt = bolts[Math.floor(Math.random() * bolts.length)];
-        shootBolt(bolt);
-      }, Math.floor(Math.random() * 300 + 380)); // 380–680ms cadence
+        const bolt = bolts[boltIndex % bolts.length];
+        const angle = boltAngles[boltIndex % boltAngles.length];
+        shootBolt(bolt, angle);
+        boltIndex++;
+      }, 400); // consistent burst rhythm
     }
 
     function stopIOSBolts() {
@@ -247,6 +239,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
