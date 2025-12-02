@@ -69,18 +69,19 @@ class AudioVisualizer extends HTMLElement {
           filter: drop-shadow(0 0 12px #fdc259);
         }
 
+        /* Bolts move along their rotated X axis */
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(0, 0);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0);
           }
           60% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--x1), var(--y1));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d1));
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--x2), var(--y2));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d2));
           }
         }
       </style>
@@ -174,28 +175,18 @@ class AudioVisualizer extends HTMLElement {
     function shootBolt(bolt) {
       // Random angle spread (−60° to +60°)
       const angle = Math.floor(Math.random() * 120 - 60);
-      const rad = angle * Math.PI / 180;
 
-      // Travel distances along that angle
-      const dist1 = 80;
-      const dist2 = 120;
+      // Travel distances along rotated X axis
+      const d1 = Math.floor(Math.random() * 60 + 60);   // mid travel
+      const d2 = d1 + Math.floor(Math.random() * 60 + 40); // farther
 
-      const x1 = Math.cos(rad) * dist1;
-      const y1 = Math.sin(rad) * dist1;
-      const x2 = Math.cos(rad) * dist2;
-      const y2 = Math.sin(rad) * dist2;
-
-      // Apply CSS variables
       bolt.style.setProperty('--angle', `${angle}deg`);
-      bolt.style.setProperty('--x1', `${x1}px`);
-      bolt.style.setProperty('--y1', `${y1}px`);
-      bolt.style.setProperty('--x2', `${x2}px`);
-      bolt.style.setProperty('--y2', `${y2}px`);
+      bolt.style.setProperty('--d1', `${d1}px`);
+      bolt.style.setProperty('--d2', `${d2}px`);
 
-      // Trigger animation
       bolt.style.animation = 'none';
       bolt.offsetHeight;
-      bolt.style.animation = 'boltShoot 1.2s ease-out forwards';
+      bolt.style.animation = 'boltShoot 1.1s ease-out forwards';
     }
 
     function startIOSBolts() {
@@ -203,7 +194,7 @@ class AudioVisualizer extends HTMLElement {
       iosIntervalId = setInterval(() => {
         const bolt = bolts[Math.floor(Math.random() * bolts.length)];
         shootBolt(bolt);
-      }, Math.floor(Math.random() * 300 + 400)); // random interval 400–700ms
+      }, Math.floor(Math.random() * 300 + 380)); // random interval 380–680ms
     }
 
     function stopIOSBolts() {
@@ -242,6 +233,8 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
+
 
 
 
