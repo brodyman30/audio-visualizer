@@ -51,11 +51,11 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to tower tip (adjust visually) */
+        /* Anchor bolts to tower tip (adjust visually until aligned) */
         .bolt {
           position: absolute;
-          top: calc(63% - 90px);  /* tower tip estimate */
-          left: 65%;
+          top: calc(58% - 90px);  /* tower tip estimate */
+          left: 50%;
           width: 40px;
           height: 40px;
           opacity: 0;
@@ -67,6 +67,18 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           object-fit: contain;
           display: block;
+          /* Glow pulse effect */
+          filter: drop-shadow(0 0 8px #fdc259) drop-shadow(0 0 16px #fdc259);
+          animation: glowPulse 1s infinite alternate;
+        }
+
+        @keyframes glowPulse {
+          0% {
+            filter: drop-shadow(0 0 6px #fdc259) drop-shadow(0 0 12px #fdc259);
+          }
+          100% {
+            filter: drop-shadow(0 0 14px #fdc259) drop-shadow(0 0 28px #fdc259);
+          }
         }
 
         /* Bolts move straight outward along their rotated long side */
@@ -180,7 +192,7 @@ class AudioVisualizer extends HTMLElement {
       const d2 = d1 + Math.floor(Math.random() * 40 + 40);
 
       bolt.style.setProperty('--angle', `${angle}deg`);
-      bolt.style.setProperty('--d1', `-${d1}px`); // negative Y = outward/up
+      bolt.style.setProperty('--d1', `-${d1}px`);
       bolt.style.setProperty('--d2', `-${d2}px`);
 
       bolt.style.animation = 'none';
@@ -239,6 +251,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
