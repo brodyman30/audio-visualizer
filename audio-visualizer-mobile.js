@@ -54,8 +54,8 @@ class AudioVisualizer extends HTMLElement {
         /* Anchor bolts to tower tip (adjust visually until aligned) */
         .bolt {
           position: absolute;
-          top: calc(58% - 90px);  /* tower tip estimate */
-          left: 50%;
+          top: calc(64% - 90px);  /* tower tip estimate */
+          left: 65%;
           width: 40px;
           height: 40px;
           opacity: 0;
