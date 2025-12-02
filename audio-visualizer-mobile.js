@@ -172,7 +172,7 @@ class AudioVisualizer extends HTMLElement {
     }
 
     function shootBolt(bolt) {
-      // Pick a random angle spread (−60° to +60°)
+      // Random angle spread (−60° to +60°)
       const angle = Math.floor(Math.random() * 120 - 60);
       const rad = angle * Math.PI / 180;
 
