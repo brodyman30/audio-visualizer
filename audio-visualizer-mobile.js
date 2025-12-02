@@ -51,11 +51,11 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to tower tip (adjusted from logo center) */
+        /* Anchor bolts to tower tip (adjust visually) */
         .bolt {
           position: absolute;
           top: calc(58% - 90px);  /* tower tip estimate */
-          left: calc(50% + 10px); /* tower horizontal offset */
+          left: 50%;
           width: 40px;
           height: 40px;
           opacity: 0;
@@ -70,18 +70,19 @@ class AudioVisualizer extends HTMLElement {
           filter: drop-shadow(0 0 12px #fdc259);
         }
 
+        /* Bolts move straight outward along their rotated long side */
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0);
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0);
           }
           60% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d1));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--d1));
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d2));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--d2));
           }
         }
       </style>
@@ -172,7 +173,7 @@ class AudioVisualizer extends HTMLElement {
       loop();
     }
 
-    const boltAngles = [-45, 0, 45]; // left, center, right burst
+    const boltAngles = [-45, 0, 45]; // left, up, right burst
     let boltIndex = 0;
 
     function shootBolt(bolt, angle) {
@@ -180,12 +181,12 @@ class AudioVisualizer extends HTMLElement {
       const d2 = d1 + Math.floor(Math.random() * 40 + 40);
 
       bolt.style.setProperty('--angle', `${angle}deg`);
-      bolt.style.setProperty('--d1', `${d1}px`);
-      bolt.style.setProperty('--d2', `${d2}px`);
+      bolt.style.setProperty('--d1', `-${d1}px`); // negative Y = outward/up
+      bolt.style.setProperty('--d2', `-${d2}px`);
 
       bolt.style.animation = 'none';
       bolt.offsetHeight;
-      bolt.style.animation = 'boltShoot 1.1s ease-out forwards';
+      bolt.style.animation = 'boltShoot 1s ease-out forwards';
 
       bolt.addEventListener('animationend', () => {
         bolt.style.opacity = '0';
@@ -200,7 +201,7 @@ class AudioVisualizer extends HTMLElement {
         const angle = boltAngles[boltIndex % boltAngles.length];
         shootBolt(bolt, angle);
         boltIndex++;
-      }, 400); // consistent burst rhythm
+      }, 400);
     }
 
     function stopIOSBolts() {
@@ -239,6 +240,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
