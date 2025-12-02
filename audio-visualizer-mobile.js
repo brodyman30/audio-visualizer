@@ -67,7 +67,6 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           object-fit: contain;
           display: block;
-          filter: drop-shadow(0 0 12px #fdc259);
         }
 
         /* Bolts move straight outward along their rotated long side */
