@@ -51,7 +51,7 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to logo’s top-right corner (logo: 150x150) */
+        /* Anchor bolts to logo’s top-right corner (logo 150x150) */
         .bolt {
           position: absolute;
           top: calc(58% - 75px);
@@ -60,6 +60,7 @@ class AudioVisualizer extends HTMLElement {
           height: 40px;
           opacity: 0;
           transform: translate(-50%, -50%);
+          will-change: transform, opacity;
         }
 
         .bolt img {
@@ -71,19 +72,20 @@ class AudioVisualizer extends HTMLElement {
         }
 
         /* Single transform chain:
-           translate -> rotate(angle + imgOffset) -> translateX(distance) */
+           translate -> rotate(angle + assetOffset) -> translateX(distance)
+           translateX ensures motion is parallel to orientation */
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--imgOffset, 0deg))) translateX(0);
+            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--assetOffset, 0deg))) translateX(0);
           }
           60% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--imgOffset, 0deg))) translateX(var(--d1));
+            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--assetOffset, 0deg))) translateX(var(--d1));
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--imgOffset, 0deg))) translateX(var(--d2));
+            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--assetOffset, 0deg))) translateX(var(--d2));
           }
         }
       </style>
@@ -176,35 +178,25 @@ class AudioVisualizer extends HTMLElement {
       loop();
     }
 
-    /* Per-bolt image offset: ensure longest side points outward */
-    bolts.forEach(bolt => {
-      const img = bolt.querySelector('img');
-      const setOffset = () => {
-        const offset = img.naturalWidth >= img.naturalHeight ? '0deg' : '90deg';
-        bolt.style.setProperty('--imgOffset', offset);
-      };
-      if (img.complete) setOffset();
-      else img.addEventListener('load', setOffset);
-    });
+    /* Optional: if your PNG’s long side is vertical, set a fixed offset to align it horizontally.
+       Try 0deg first; if the asset needs rotating, set to 90deg. */
+    const fixedAssetOffsetDeg = 0; // change to 90 if your bolt PNG is tall and should be rotated
 
-    /* Shoot bolt strictly along rotated X axis (parallel motion) */
     function shootBolt(bolt) {
-      // Flight angle spread (−60° to +60°)
-      const angle = Math.floor(Math.random() * 120 - 60);
-      // Distances
+      // Constrain angle to upward-right quadrant (negative angles prevent downward drift)
+      const angle = Math.floor(Math.random() * 90) - 90; // −90° to −0°
       const d1 = Math.floor(Math.random() * 60 + 60);
       const d2 = d1 + Math.floor(Math.random() * 60 + 40);
 
       bolt.style.setProperty('--angle', `${angle}deg`);
+      bolt.style.setProperty('--assetOffset', `${fixedAssetOffsetDeg}deg`);
       bolt.style.setProperty('--d1', `${d1}px`);
       bolt.style.setProperty('--d2', `${d2}px`);
 
-      // Clean animation retrigger
       bolt.style.animation = 'none';
       bolt.offsetHeight;
       bolt.style.animation = 'boltShoot 1.1s ease-out forwards';
 
-      // Ensure opacity resets after animation completes
       bolt.addEventListener('animationend', () => {
         bolt.style.opacity = '0';
         bolt.style.animation = 'none';
@@ -235,7 +227,6 @@ class AudioVisualizer extends HTMLElement {
       stopIOSBolts();
     }
 
-    /* Play/pause handler */
     logo.addEventListener('click', async () => {
       if (audio.paused) {
         await audio.play();
