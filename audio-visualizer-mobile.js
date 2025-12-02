@@ -27,6 +27,7 @@ class AudioVisualizer extends HTMLElement {
           pointer-events: none;
         }
 
+        .visualizer-circle,
         #bolts {
           position: absolute;
           top: 50%;
@@ -50,7 +51,7 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to logo’s top-right corner (logo is 150x150) */
+        /* Anchor bolts to logo’s top-right corner (logo: 150x150) */
         .bolt {
           position: absolute;
           top: calc(58% - 75px);
@@ -61,34 +62,28 @@ class AudioVisualizer extends HTMLElement {
           transform: translate(-50%, -50%);
         }
 
-        /* Inner wrapper lets us add an image orientation offset independently */
-        .bolt-inner {
-          width: 100%;
-          height: 100%;
-          transform: rotate(calc(var(--angle, 0deg) + var(--imgOffset, 0deg)));
-        }
-
         .bolt img {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          filter: drop-shadow(0 0 12px #fdc259);
           display: block;
+          filter: drop-shadow(0 0 12px #fdc259);
         }
 
-        /* Move strictly along rotated X axis (parallel to motion) */
+        /* Single transform chain:
+           translate -> rotate(angle + imgOffset) -> translateX(distance) */
         @keyframes boltShoot {
           0% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0);
+            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--imgOffset, 0deg))) translateX(0);
           }
           60% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d1));
+            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--imgOffset, 0deg))) translateX(var(--d1));
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--d2));
+            transform: translate(-50%, -50%) rotate(calc(var(--angle) + var(--imgOffset, 0deg))) translateX(var(--d2));
           }
         }
       </style>
@@ -107,9 +102,7 @@ class AudioVisualizer extends HTMLElement {
         <div id="bolts">
           ${Array.from({ length: 6 }, () => `
             <div class="bolt">
-              <div class="bolt-inner">
-                <img class="bolt-img" src="https://static.wixstatic.com/media/eaaa6a_0ce7ee88c3894941bcb1da72a58d1c0e~mv2.png" />
-              </div>
+              <img src="https://static.wixstatic.com/media/eaaa6a_0ce7ee88c3894941bcb1da72a58d1c0e~mv2.png" />
             </div>
           `).join('')}
         </div>
@@ -120,8 +113,6 @@ class AudioVisualizer extends HTMLElement {
     const logo = this.querySelector('#logo');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
     const bolts = this.querySelectorAll('#bolts .bolt');
-    const boltImgs = this.querySelectorAll('.bolt-img');
-    const boltInners = this.querySelectorAll('.bolt-inner');
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
@@ -185,49 +176,46 @@ class AudioVisualizer extends HTMLElement {
       loop();
     }
 
-    /* Compute image orientation offset so longest side points outward */
-    const imgOffsets = new Map();
-    boltImgs.forEach((img, idx) => {
-      if (img.complete) {
-        const offset = img.naturalWidth >= img.naturalHeight ? 0 : 90; // long side horizontal=0°, vertical=90°
-        imgOffsets.set(idx, offset);
-        boltInners[idx].style.setProperty('--imgOffset', `${offset}deg`);
-      } else {
-        img.addEventListener('load', () => {
-          const offset = img.naturalWidth >= img.naturalHeight ? 0 : 90;
-          imgOffsets.set(idx, offset);
-          boltInners[idx].style.setProperty('--imgOffset', `${offset}deg`);
-        });
-      }
+    /* Per-bolt image offset: ensure longest side points outward */
+    bolts.forEach(bolt => {
+      const img = bolt.querySelector('img');
+      const setOffset = () => {
+        const offset = img.naturalWidth >= img.naturalHeight ? '0deg' : '90deg';
+        bolt.style.setProperty('--imgOffset', offset);
+      };
+      if (img.complete) setOffset();
+      else img.addEventListener('load', setOffset);
     });
 
-    function shootBolt(bolt, idx) {
-      // Angle the flight away from the logo (spread −70° to +20°; bias upward/right)
-      const angle = Math.floor(Math.random() * 90 - 70);
+    /* Shoot bolt strictly along rotated X axis (parallel motion) */
+    function shootBolt(bolt) {
+      // Flight angle spread (−60° to +60°)
+      const angle = Math.floor(Math.random() * 120 - 60);
+      // Distances
       const d1 = Math.floor(Math.random() * 60 + 60);
       const d2 = d1 + Math.floor(Math.random() * 60 + 40);
 
-      // Set flight variables
       bolt.style.setProperty('--angle', `${angle}deg`);
       bolt.style.setProperty('--d1', `${d1}px`);
       bolt.style.setProperty('--d2', `${d2}px`);
 
-      // Ensure the inner wrapper includes image orientation offset
-      const offset = imgOffsets.get(idx) ?? 0;
-      const inner = bolt.querySelector('.bolt-inner');
-      inner.style.setProperty('--imgOffset', `${offset}deg`);
-
-      // Fire animation
+      // Clean animation retrigger
       bolt.style.animation = 'none';
       bolt.offsetHeight;
       bolt.style.animation = 'boltShoot 1.1s ease-out forwards';
+
+      // Ensure opacity resets after animation completes
+      bolt.addEventListener('animationend', () => {
+        bolt.style.opacity = '0';
+        bolt.style.animation = 'none';
+      }, { once: true });
     }
 
     function startIOSBolts() {
       if (iosIntervalId) return;
       iosIntervalId = setInterval(() => {
-        const i = Math.floor(Math.random() * bolts.length);
-        shootBolt(bolts[i], i);
+        const bolt = bolts[Math.floor(Math.random() * bolts.length)];
+        shootBolt(bolt);
       }, Math.floor(Math.random() * 300 + 380)); // 380–680ms cadence
     }
 
@@ -268,6 +256,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
