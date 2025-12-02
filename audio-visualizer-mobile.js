@@ -54,8 +54,8 @@ class AudioVisualizer extends HTMLElement {
         /* Anchor bolts to logo’s top-right corner */
         .bolt {
           position: absolute;
-          top: calc(58% - 75px); 
-          left: calc(50% + 45px); 
+          top: calc(58% - 75px);  /* logo center minus half logo height */
+          left: calc(50% + 75px); /* logo center plus half logo width */
           width: 40px;
           height: 40px;
           opacity: 0;
@@ -76,11 +76,11 @@ class AudioVisualizer extends HTMLElement {
           }
           60% {
             opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--dist1), var(--dist2));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--x1), var(--y1));
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--dist3), var(--dist4));
+            transform: translate(-50%, -50%) rotate(var(--angle)) translate(var(--x2), var(--y2));
           }
         }
       </style>
@@ -172,18 +172,27 @@ class AudioVisualizer extends HTMLElement {
     }
 
     function shootBolt(bolt) {
-      const angle = Math.floor(Math.random() * 120 - 60); // wider spread
-      const dist1 = Math.floor(Math.random() * 60 + 40);
-      const dist2 = -Math.floor(Math.random() * 60 + 40);
-      const dist3 = dist1 + Math.floor(Math.random() * 40 + 20);
-      const dist4 = dist2 - Math.floor(Math.random() * 40 + 20);
+      // Pick a random angle spread (−60° to +60°)
+      const angle = Math.floor(Math.random() * 120 - 60);
+      const rad = angle * Math.PI / 180;
 
+      // Travel distances along that angle
+      const dist1 = 80;
+      const dist2 = 120;
+
+      const x1 = Math.cos(rad) * dist1;
+      const y1 = Math.sin(rad) * dist1;
+      const x2 = Math.cos(rad) * dist2;
+      const y2 = Math.sin(rad) * dist2;
+
+      // Apply CSS variables
       bolt.style.setProperty('--angle', `${angle}deg`);
-      bolt.style.setProperty('--dist1', `${dist1}px`);
-      bolt.style.setProperty('--dist2', `${dist2}px`);
-      bolt.style.setProperty('--dist3', `${dist3}px`);
-      bolt.style.setProperty('--dist4', `${dist4}px`);
+      bolt.style.setProperty('--x1', `${x1}px`);
+      bolt.style.setProperty('--y1', `${y1}px`);
+      bolt.style.setProperty('--x2', `${x2}px`);
+      bolt.style.setProperty('--y2', `${y2}px`);
 
+      // Trigger animation
       bolt.style.animation = 'none';
       bolt.offsetHeight;
       bolt.style.animation = 'boltShoot 1.2s ease-out forwards';
