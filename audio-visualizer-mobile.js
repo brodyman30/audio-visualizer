@@ -27,7 +27,6 @@ class AudioVisualizer extends HTMLElement {
           pointer-events: none;
         }
 
-        .visualizer-circle,
         #bolts {
           position: absolute;
           top: 50%;
@@ -51,15 +50,22 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to logo’s top-right corner */
+        /* Anchor bolts to logo’s top-right corner (logo is 150x150) */
         .bolt {
           position: absolute;
-          top: calc(58% - 75px);  /* logo center minus half logo height */
-          left: calc(50% + 75px); /* logo center plus half logo width */
+          top: calc(58% - 75px);
+          left: calc(50% + 75px);
           width: 40px;
           height: 40px;
           opacity: 0;
           transform: translate(-50%, -50%);
+        }
+
+        /* Inner wrapper lets us add an image orientation offset independently */
+        .bolt-inner {
+          width: 100%;
+          height: 100%;
+          transform: rotate(calc(var(--angle, 0deg) + var(--imgOffset, 0deg)));
         }
 
         .bolt img {
@@ -67,9 +73,10 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           object-fit: contain;
           filter: drop-shadow(0 0 12px #fdc259);
+          display: block;
         }
 
-        /* Bolts move along their rotated X axis */
+        /* Move strictly along rotated X axis (parallel to motion) */
         @keyframes boltShoot {
           0% {
             opacity: 1;
@@ -100,7 +107,9 @@ class AudioVisualizer extends HTMLElement {
         <div id="bolts">
           ${Array.from({ length: 6 }, () => `
             <div class="bolt">
-              <img src="https://static.wixstatic.com/media/eaaa6a_0ce7ee88c3894941bcb1da72a58d1c0e~mv2.png" />
+              <div class="bolt-inner">
+                <img class="bolt-img" src="https://static.wixstatic.com/media/eaaa6a_0ce7ee88c3894941bcb1da72a58d1c0e~mv2.png" />
+              </div>
             </div>
           `).join('')}
         </div>
@@ -111,6 +120,8 @@ class AudioVisualizer extends HTMLElement {
     const logo = this.querySelector('#logo');
     const bars = this.querySelectorAll('#visualizer-circle .bar');
     const bolts = this.querySelectorAll('#bolts .bolt');
+    const boltImgs = this.querySelectorAll('.bolt-img');
+    const boltInners = this.querySelectorAll('.bolt-inner');
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
@@ -119,6 +130,7 @@ class AudioVisualizer extends HTMLElement {
     let androidLoopId = null;
     let iosIntervalId = null;
 
+    /* Media Session */
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'You Belong.',
@@ -133,6 +145,7 @@ class AudioVisualizer extends HTMLElement {
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
     }
 
+    /* Bars layout */
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
@@ -172,18 +185,39 @@ class AudioVisualizer extends HTMLElement {
       loop();
     }
 
-    function shootBolt(bolt) {
-      // Random angle spread (−60° to +60°)
-      const angle = Math.floor(Math.random() * 120 - 60);
+    /* Compute image orientation offset so longest side points outward */
+    const imgOffsets = new Map();
+    boltImgs.forEach((img, idx) => {
+      if (img.complete) {
+        const offset = img.naturalWidth >= img.naturalHeight ? 0 : 90; // long side horizontal=0°, vertical=90°
+        imgOffsets.set(idx, offset);
+        boltInners[idx].style.setProperty('--imgOffset', `${offset}deg`);
+      } else {
+        img.addEventListener('load', () => {
+          const offset = img.naturalWidth >= img.naturalHeight ? 0 : 90;
+          imgOffsets.set(idx, offset);
+          boltInners[idx].style.setProperty('--imgOffset', `${offset}deg`);
+        });
+      }
+    });
 
-      // Travel distances along rotated X axis
-      const d1 = Math.floor(Math.random() * 60 + 60);   // mid travel
-      const d2 = d1 + Math.floor(Math.random() * 60 + 40); // farther
+    function shootBolt(bolt, idx) {
+      // Angle the flight away from the logo (spread −70° to +20°; bias upward/right)
+      const angle = Math.floor(Math.random() * 90 - 70);
+      const d1 = Math.floor(Math.random() * 60 + 60);
+      const d2 = d1 + Math.floor(Math.random() * 60 + 40);
 
+      // Set flight variables
       bolt.style.setProperty('--angle', `${angle}deg`);
       bolt.style.setProperty('--d1', `${d1}px`);
       bolt.style.setProperty('--d2', `${d2}px`);
 
+      // Ensure the inner wrapper includes image orientation offset
+      const offset = imgOffsets.get(idx) ?? 0;
+      const inner = bolt.querySelector('.bolt-inner');
+      inner.style.setProperty('--imgOffset', `${offset}deg`);
+
+      // Fire animation
       bolt.style.animation = 'none';
       bolt.offsetHeight;
       bolt.style.animation = 'boltShoot 1.1s ease-out forwards';
@@ -192,9 +226,9 @@ class AudioVisualizer extends HTMLElement {
     function startIOSBolts() {
       if (iosIntervalId) return;
       iosIntervalId = setInterval(() => {
-        const bolt = bolts[Math.floor(Math.random() * bolts.length)];
-        shootBolt(bolt);
-      }, Math.floor(Math.random() * 300 + 380)); // random interval 380–680ms
+        const i = Math.floor(Math.random() * bolts.length);
+        shootBolt(bolts[i], i);
+      }, Math.floor(Math.random() * 300 + 380)); // 380–680ms cadence
     }
 
     function stopIOSBolts() {
@@ -213,6 +247,7 @@ class AudioVisualizer extends HTMLElement {
       stopIOSBolts();
     }
 
+    /* Play/pause handler */
     logo.addEventListener('click', async () => {
       if (audio.paused) {
         await audio.play();
@@ -233,6 +268,7 @@ class AudioVisualizer extends HTMLElement {
 }
 
 customElements.define('audio-visualizer-mobile', AudioVisualizer);
+
 
 
 
