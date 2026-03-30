@@ -131,6 +131,7 @@ class AudioVisualizer extends HTMLElement {
     let androidLoopId = null;
     let iosIntervalId = null;
     let isPlaying = false;
+    let isRecovering = false; // flag to prevent pause/play listeners during iOS recovery
 
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -254,6 +255,7 @@ class AudioVisualizer extends HTMLElement {
     // FIX: Handle OS-triggered pauses (switching apps, phone calls, lock screen)
     // Syncs the UI when iOS/Android pauses audio without the user tapping
     audio.addEventListener('pause', () => {
+      if (isRecovering) return; // skip during iOS recovery cycle
       if (isPlaying) {
         pauseCleanup();
       }
@@ -261,6 +263,7 @@ class AudioVisualizer extends HTMLElement {
 
     // FIX: Handle OS-triggered resume (e.g. from lock screen controls)
     audio.addEventListener('play', () => {
+      if (isRecovering) return; // skip during iOS recovery cycle
       if (!isPlaying) {
         isPlaying = true;
         if (isIOS) {
@@ -274,17 +277,34 @@ class AudioVisualizer extends HTMLElement {
       }
     });
 
-    // FIX: When returning to the tab/app, resume AudioContext if needed
+    // FIX: When returning to the tab/app, recover audio output.
+    // iOS Safari breaks the audio output pipeline when backgrounded —
+    // the stream stays "playing" but produces no sound. A pause/play
+    // cycle forces iOS to reconnect the audio output.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !audio.paused) {
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        if (!isPlaying) {
-          isPlaying = true;
-          if (isIOS) {
-            startIOSBolts();
-          } else {
+        if (isIOS) {
+          // Force iOS to reconnect audio output.
+          // The pause/play cycle is needed because iOS disconnects
+          // the audio pipeline when backgrounded. We use isRecovering
+          // to prevent the pause/play event listeners from interfering.
+          isRecovering = true;
+          audio.pause();
+          audio.play().then(() => {
+            isRecovering = false;
+            if (!isPlaying) {
+              isPlaying = true;
+              startIOSBolts();
+            }
+          }).catch(() => {
+            isRecovering = false;
+          });
+        } else {
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          if (!isPlaying) {
+            isPlaying = true;
             startAndroidVisualizer();
           }
         }
@@ -301,28 +321,7 @@ class AudioVisualizer extends HTMLElement {
         if (isIOS) {
           // iOS path: just play + bolts, no AudioContext needed
           audio.play().then(() => {
-            startIOSBolts();
-          }).catch(err => {
-            console.warn('Playback failed:', err);
-            isPlaying = false;
-          });
-        } else {
-          // Android/desktop path: init AudioContext inside gesture, then play
-          startAndroidVisualizer();
-          audio.play().catch(err => {
-            console.warn('Playback failed:', err);
-            pauseCleanup();
-          });
-        }
-      } else {
-        audio.pause();
-        pauseCleanup();
-      }
-    });
-  }
-}
-
-customElements.define('audio-visualizer-mobile', AudioVisualizer);
+            startIOSBo
 
 
 
