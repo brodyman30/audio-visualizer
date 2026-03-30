@@ -51,10 +51,9 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to tower tip (adjust visually until aligned) */
         .bolt {
           position: absolute;
-          top: calc(67% - 90px);  /* tower tip estimate */
+          top: calc(67% - 90px);
           left: 69%;
           width: 40px;
           height: 40px;
@@ -67,7 +66,6 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           object-fit: contain;
           display: block;
-          /* Glow pulse effect */
           filter: drop-shadow(0 0 8px #fdc259) drop-shadow(0 0 16px #fdc259);
           animation: glowPulse 1s infinite alternate;
         }
@@ -81,7 +79,6 @@ class AudioVisualizer extends HTMLElement {
           }
         }
 
-        /* Bolts move straight outward along their rotated long side */
         @keyframes boltShoot {
           0% {
             opacity: 1;
@@ -107,7 +104,7 @@ class AudioVisualizer extends HTMLElement {
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Logo" />
         </div>
 
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
+        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline preload="none"></audio>
 
         <div id="bolts">
           ${[0, 1, 2].map(() => `
@@ -126,11 +123,15 @@ class AudioVisualizer extends HTMLElement {
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
+    // --- State ---
     let audioCtx = null;
     let analyser = null;
+    let source = null;
     let androidLoopId = null;
     let iosIntervalId = null;
+    let isPlaying = false;
 
+    // --- Media Session (lock screen controls) ---
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'You Belong.',
@@ -141,10 +142,16 @@ class AudioVisualizer extends HTMLElement {
         ]
       });
 
-      navigator.mediaSession.setActionHandler('play', () => audio.play());
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        audio.play();
+      });
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
     }
 
+    // Position bars radially (idle state)
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
@@ -153,20 +160,24 @@ class AudioVisualizer extends HTMLElement {
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
+    // --- Lazy-init AudioContext on first user gesture (required by iOS) ---
+    function ensureAudioContext() {
+      if (audioCtx) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source = audioCtx.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+
+    // --- Android/desktop visualizer (uses Web Audio analyser) ---
     function startAndroidVisualizer() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-
-        const source = audioCtx.createMediaElementSource(audio);
-        source.connect(analyser);
-        source.connect(audioCtx.destination);
-      }
-
       bars.forEach(bar => (bar.style.opacity = '1'));
 
       function loop() {
+        if (!isPlaying) return; // Stop loop when not playing
+
         analyser.getByteFrequencyData(dataArray);
 
         const halfBars = bars.length / 2;
@@ -181,10 +192,12 @@ class AudioVisualizer extends HTMLElement {
         androidLoopId = requestAnimationFrame(loop);
       }
 
-      loop();
+      if (androidLoopId) cancelAnimationFrame(androidLoopId);
+      androidLoopId = requestAnimationFrame(loop);
     }
 
-    const boltAngles = [-45, 0, 45]; // left, up, right burst
+    // --- iOS bolt animations ---
+    const boltAngles = [-45, 0, 45];
     let boltIndex = 0;
 
     function shootBolt(bolt, angle) {
@@ -222,8 +235,23 @@ class AudioVisualizer extends HTMLElement {
       bolts.forEach(b => (b.style.opacity = 0));
     }
 
-    function pauseCleanup() {
-      bars.forEach(bar => (bar.style.opacity = '0'));
+    // --- Unified start/stop helpers ---
+    function startVisuals() {
+      isPlaying = true;
+      if (isIOS) {
+        startIOSBolts();
+      } else {
+        startAndroidVisualizer();
+      }
+    }
+
+    function stopVisuals() {
+      isPlaying = false;
+      bars.forEach((bar, i) => {
+        bar.style.opacity = '0';
+        const angleDeg = (i / bars.length) * 360;
+        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
+      });
       if (androidLoopId) {
         cancelAnimationFrame(androidLoopId);
         androidLoopId = null;
@@ -231,26 +259,61 @@ class AudioVisualizer extends HTMLElement {
       stopIOSBolts();
     }
 
-    logo.addEventListener('click', async () => {
-      if (audio.paused) {
-        await audio.play();
-        if (isIOS) {
-          startIOSBolts();
-        } else {
-          if (audioCtx && audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-          }
-          startAndroidVisualizer();
+    // --- Handle iOS/Safari interruptions ---
+    // When iOS pauses audio (switching apps, phone call, lock screen),
+    // sync the UI and recover when the user comes back.
+
+    audio.addEventListener('pause', () => {
+      if (isPlaying) {
+        stopVisuals();
+      }
+    });
+
+    audio.addEventListener('play', () => {
+      if (!isPlaying) {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
         }
+        startVisuals();
+      }
+    });
+
+    // When the page becomes visible again, resume if audio is still going
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !audio.paused) {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        if (!isPlaying) {
+          startVisuals();
+        }
+      }
+    });
+
+    // --- Main click handler ---
+    logo.addEventListener('click', () => {
+      // Create AudioContext inside user gesture (iOS requirement)
+      ensureAudioContext();
+
+      if (audio.paused) {
+        // Resume AudioContext first (must happen in user gesture on iOS)
+        audioCtx.resume().then(() => {
+          // Don't call audio.load() — it resets the stream and breaks
+          // the MediaElementSource connection on iOS. Just play.
+          audio.play().catch(err => {
+            console.warn('Playback failed:', err);
+          });
+          startVisuals();
+        });
       } else {
         audio.pause();
-        pauseCleanup();
+        stopVisuals();
       }
     });
   }
 }
 
-customElements.define('audio-visualizer-mobile', AudioVisualizer);
+customElements.define('audio-visualizer', AudioVisualizer);
 
 
 
