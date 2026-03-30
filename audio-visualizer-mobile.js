@@ -51,9 +51,10 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
+        /* Anchor bolts to tower tip (adjust visually until aligned) */
         .bolt {
           position: absolute;
-          top: calc(67% - 90px);
+          top: calc(67% - 90px);  /* tower tip estimate */
           left: 69%;
           width: 40px;
           height: 40px;
@@ -66,6 +67,7 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           object-fit: contain;
           display: block;
+          /* Glow pulse effect */
           filter: drop-shadow(0 0 8px #fdc259) drop-shadow(0 0 16px #fdc259);
           animation: glowPulse 1s infinite alternate;
         }
@@ -79,6 +81,7 @@ class AudioVisualizer extends HTMLElement {
           }
         }
 
+        /* Bolts move straight outward along their rotated long side */
         @keyframes boltShoot {
           0% {
             opacity: 1;
@@ -123,15 +126,12 @@ class AudioVisualizer extends HTMLElement {
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-    // --- State ---
     let audioCtx = null;
     let analyser = null;
-    let source = null;
     let androidLoopId = null;
     let iosIntervalId = null;
     let isPlaying = false;
 
-    // --- Media Session (lock screen controls) ---
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'You Belong.',
@@ -151,7 +151,6 @@ class AudioVisualizer extends HTMLElement {
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
     }
 
-    // Position bars radially (idle state)
     bars.forEach((bar, i) => {
       const angleDeg = (i / bars.length) * 360;
       bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
@@ -160,23 +159,27 @@ class AudioVisualizer extends HTMLElement {
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
-    // --- Lazy-init AudioContext on first user gesture (required by iOS) ---
-    function ensureAudioContext() {
-      if (audioCtx) return;
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      source = audioCtx.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination);
-    }
-
-    // --- Android/desktop visualizer (uses Web Audio analyser) ---
+    // FIX: Android visualizer — AudioContext created inside user gesture,
+    // and animation loop stops itself when not playing
     function startAndroidVisualizer() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        const source = audioCtx.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
       bars.forEach(bar => (bar.style.opacity = '1'));
 
       function loop() {
-        if (!isPlaying) return; // Stop loop when not playing
+        if (!isPlaying) return; // Stop the loop when paused
 
         analyser.getByteFrequencyData(dataArray);
 
@@ -193,11 +196,10 @@ class AudioVisualizer extends HTMLElement {
       }
 
       if (androidLoopId) cancelAnimationFrame(androidLoopId);
-      androidLoopId = requestAnimationFrame(loop);
+      loop();
     }
 
-    // --- iOS bolt animations ---
-    const boltAngles = [-45, 0, 45];
+    const boltAngles = [-45, 0, 45]; // left, up, right burst
     let boltIndex = 0;
 
     function shootBolt(bolt, angle) {
@@ -235,17 +237,7 @@ class AudioVisualizer extends HTMLElement {
       bolts.forEach(b => (b.style.opacity = 0));
     }
 
-    // --- Unified start/stop helpers ---
-    function startVisuals() {
-      isPlaying = true;
-      if (isIOS) {
-        startIOSBolts();
-      } else {
-        startAndroidVisualizer();
-      }
-    }
-
-    function stopVisuals() {
+    function pauseCleanup() {
       isPlaying = false;
       bars.forEach((bar, i) => {
         bar.style.opacity = '0';
@@ -259,62 +251,78 @@ class AudioVisualizer extends HTMLElement {
       stopIOSBolts();
     }
 
-    // --- Handle iOS/Safari interruptions ---
-    // When iOS pauses audio (switching apps, phone call, lock screen),
-    // sync the UI and recover when the user comes back.
-
+    // FIX: Handle OS-triggered pauses (switching apps, phone calls, lock screen)
+    // Syncs the UI when iOS/Android pauses audio without the user tapping
     audio.addEventListener('pause', () => {
       if (isPlaying) {
-        stopVisuals();
+        pauseCleanup();
       }
     });
 
+    // FIX: Handle OS-triggered resume (e.g. from lock screen controls)
     audio.addEventListener('play', () => {
       if (!isPlaying) {
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
+        isPlaying = true;
+        if (isIOS) {
+          startIOSBolts();
+        } else {
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          startAndroidVisualizer();
         }
-        startVisuals();
       }
     });
 
-    // When the page becomes visible again, resume if audio is still going
+    // FIX: When returning to the tab/app, resume AudioContext if needed
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !audio.paused) {
         if (audioCtx && audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
         if (!isPlaying) {
-          startVisuals();
+          isPlaying = true;
+          if (isIOS) {
+            startIOSBolts();
+          } else {
+            startAndroidVisualizer();
+          }
         }
       }
     });
 
-    // --- Main click handler ---
+    // FIX: No more audio.load() — it resets the stream and kills
+    // the MediaElementSource connection, causing auto-stop on iOS.
+    // AudioContext.resume() happens inside the tap gesture for iOS compliance.
     logo.addEventListener('click', () => {
-      // Create AudioContext inside user gesture (iOS requirement)
-      ensureAudioContext();
-
       if (audio.paused) {
-        // Resume AudioContext first (must happen in user gesture on iOS)
-        audioCtx.resume().then(() => {
-          // Don't call audio.load() — it resets the stream and breaks
-          // the MediaElementSource connection on iOS. Just play.
+        isPlaying = true;
+
+        if (isIOS) {
+          // iOS path: just play + bolts, no AudioContext needed
+          audio.play().then(() => {
+            startIOSBolts();
+          }).catch(err => {
+            console.warn('Playback failed:', err);
+            isPlaying = false;
+          });
+        } else {
+          // Android/desktop path: init AudioContext inside gesture, then play
+          startAndroidVisualizer();
           audio.play().catch(err => {
             console.warn('Playback failed:', err);
+            pauseCleanup();
           });
-          startVisuals();
-        });
+        }
       } else {
         audio.pause();
-        stopVisuals();
+        pauseCleanup();
       }
     });
   }
 }
 
-customElements.define('audio-visualizer', AudioVisualizer);
-
+customElements.define('audio-visualizer-mobile', AudioVisualizer);
 
 
 
