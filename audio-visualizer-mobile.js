@@ -51,10 +51,9 @@ class AudioVisualizer extends HTMLElement {
           border-radius: 50px;
         }
 
-        /* Anchor bolts to tower tip (adjust visually until aligned) */
         .bolt {
           position: absolute;
-          top: calc(67% - 90px);  /* tower tip estimate */
+          top: calc(67% - 90px);
           left: 69%;
           width: 40px;
           height: 40px;
@@ -67,7 +66,6 @@ class AudioVisualizer extends HTMLElement {
           height: 100%;
           object-fit: contain;
           display: block;
-          /* Glow pulse effect */
           filter: drop-shadow(0 0 8px #fdc259) drop-shadow(0 0 16px #fdc259);
           animation: glowPulse 1s infinite alternate;
         }
@@ -81,7 +79,6 @@ class AudioVisualizer extends HTMLElement {
           }
         }
 
-        /* Bolts move straight outward along their rotated long side */
         @keyframes boltShoot {
           0% {
             opacity: 1;
@@ -107,7 +104,7 @@ class AudioVisualizer extends HTMLElement {
           <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Logo" />
         </div>
 
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline preload="none"></audio>
+        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
 
         <div id="bolts">
           ${[0, 1, 2].map(() => `
@@ -130,8 +127,6 @@ class AudioVisualizer extends HTMLElement {
     let analyser = null;
     let androidLoopId = null;
     let iosIntervalId = null;
-    let isPlaying = false;
-    let isRecovering = false; // flag to prevent pause/play listeners during iOS recovery
 
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -143,12 +138,7 @@ class AudioVisualizer extends HTMLElement {
         ]
       });
 
-      navigator.mediaSession.setActionHandler('play', () => {
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        audio.play();
-      });
+      navigator.mediaSession.setActionHandler('play', () => audio.play());
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
     }
 
@@ -160,8 +150,6 @@ class AudioVisualizer extends HTMLElement {
     const bufferLength = 128;
     const dataArray = new Uint8Array(bufferLength);
 
-    // FIX: Android visualizer — AudioContext created inside user gesture,
-    // and animation loop stops itself when not playing
     function startAndroidVisualizer() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -173,15 +161,9 @@ class AudioVisualizer extends HTMLElement {
         source.connect(audioCtx.destination);
       }
 
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-
       bars.forEach(bar => (bar.style.opacity = '1'));
 
       function loop() {
-        if (!isPlaying) return; // Stop the loop when paused
-
         analyser.getByteFrequencyData(dataArray);
 
         const halfBars = bars.length / 2;
@@ -196,11 +178,10 @@ class AudioVisualizer extends HTMLElement {
         androidLoopId = requestAnimationFrame(loop);
       }
 
-      if (androidLoopId) cancelAnimationFrame(androidLoopId);
       loop();
     }
 
-    const boltAngles = [-45, 0, 45]; // left, up, right burst
+    const boltAngles = [-45, 0, 45];
     let boltIndex = 0;
 
     function shootBolt(bolt, angle) {
@@ -239,12 +220,7 @@ class AudioVisualizer extends HTMLElement {
     }
 
     function pauseCleanup() {
-      isPlaying = false;
-      bars.forEach((bar, i) => {
-        bar.style.opacity = '0';
-        const angleDeg = (i / bars.length) * 360;
-        bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
-      });
+      bars.forEach(bar => (bar.style.opacity = '0'));
       if (androidLoopId) {
         cancelAnimationFrame(androidLoopId);
         androidLoopId = null;
@@ -252,77 +228,36 @@ class AudioVisualizer extends HTMLElement {
       stopIOSBolts();
     }
 
-    // FIX: Handle OS-triggered pauses (switching apps, phone calls, lock screen)
-    // Syncs the UI when iOS/Android pauses audio without the user tapping
-    audio.addEventListener('pause', () => {
-      if (isRecovering) return; // skip during iOS recovery cycle
-      if (isPlaying) {
-        pauseCleanup();
+    // NEW: When returning to the app on iOS, force a pause/play cycle
+    // to restore audio output. iOS disconnects the audio pipeline when
+    // backgrounded — the stream stays "playing" but goes silent.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !audio.paused && isIOS) {
+        audio.pause();
+        audio.play().catch(() => {});
       }
     });
 
-    // FIX: Handle OS-triggered resume (e.g. from lock screen controls)
-    audio.addEventListener('play', () => {
-      if (isRecovering) return; // skip during iOS recovery cycle
-      if (!isPlaying) {
-        isPlaying = true;
+    logo.addEventListener('click', async () => {
+      if (audio.paused) {
+        await audio.play();
         if (isIOS) {
           startIOSBolts();
         } else {
           if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
+            await audioCtx.resume();
           }
           startAndroidVisualizer();
         }
+      } else {
+        audio.pause();
+        pauseCleanup();
       }
     });
+  }
+}
 
-    // FIX: When returning to the tab/app, recover audio output.
-    // iOS Safari breaks the audio output pipeline when backgrounded —
-    // the stream stays "playing" but produces no sound. A pause/play
-    // cycle forces iOS to reconnect the audio output.
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && !audio.paused) {
-        if (isIOS) {
-          // Force iOS to reconnect audio output.
-          // The pause/play cycle is needed because iOS disconnects
-          // the audio pipeline when backgrounded. We use isRecovering
-          // to prevent the pause/play event listeners from interfering.
-          isRecovering = true;
-          audio.pause();
-          audio.play().then(() => {
-            isRecovering = false;
-            if (!isPlaying) {
-              isPlaying = true;
-              startIOSBolts();
-            }
-          }).catch(() => {
-            isRecovering = false;
-          });
-        } else {
-          if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
-          }
-          if (!isPlaying) {
-            isPlaying = true;
-            startAndroidVisualizer();
-          }
-        }
-      }
-    });
-
-    // FIX: No more audio.load() — it resets the stream and kills
-    // the MediaElementSource connection, causing auto-stop on iOS.
-    // AudioContext.resume() happens inside the tap gesture for iOS compliance.
-    logo.addEventListener('click', () => {
-      if (audio.paused) {
-        isPlaying = true;
-
-        if (isIOS) {
-          // iOS path: just play + bolts, no AudioContext needed
-          audio.play().then(() => {
-            startIOSBo
-
+customElements.define('audio-visualizer-mobile', AudioVisualizer);
 
 
 
