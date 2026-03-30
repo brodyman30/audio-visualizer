@@ -169,7 +169,7 @@ class AudioVisualizer extends HTMLElement {
 
         const source = audioCtx.createMediaElementSource(audio);
         source.connect(analyser);
-        analyser.connect(audioCtx.destination);
+        source.connect(audioCtx.destination);
       }
 
       if (audioCtx.state === 'suspended') {
