@@ -1,5 +1,13 @@
 class AudioVisualizer extends HTMLElement {
   connectedCallback() {
+    // Lock the host page to prevent scrolling
+    const lockStyle = document.createElement('style');
+    lockStyle.id = 'av-scroll-lock';
+    lockStyle.textContent = 'html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}';
+    if (!document.getElementById('av-scroll-lock')) {
+      document.head.appendChild(lockStyle);
+    }
+
     this.innerHTML = `
       <style>
         @font-face {
