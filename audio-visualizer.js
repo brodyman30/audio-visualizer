@@ -604,4 +604,4 @@ class AudioVisualizer extends HTMLElement {
   }
 }
 
-customElements.define('test-visualizer', AudioVisualizer);
+customElements.define('audio-visualizer', AudioVisualizer);
