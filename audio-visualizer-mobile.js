@@ -111,13 +111,18 @@ class AudioVisualizerMobile extends HTMLElement {
         <div class="av-m-station">WILDCAT 91.9 · LIVE</div>
         <div class="av-m-hint" id="av-m-hint">TAP TO PLAY</div>
 
+        <!-- Primary: plain audio for background-safe playback on iOS -->
         <audio id="av-m-audio" src="https://s.radiowave.io/ksdb.mp3"
                crossorigin="anonymous" playsinline></audio>
+        <!-- Analyser tap: muted clone fed into AudioContext for visualizer only -->
+        <audio id="av-m-tap" src="https://s.radiowave.io/ksdb.mp3"
+               crossorigin="anonymous" playsinline muted></audio>
       </div>
     `;
 
     const root       = this.querySelector('#av-m-root');
     const audio      = this.querySelector('#av-m-audio');
+    const audioTap   = this.querySelector('#av-m-tap');
     const logo       = this.querySelector('#av-m-logo');
     const hint       = this.querySelector('#av-m-hint');
     const bgCanvas   = this.querySelector('#av-m-bg');
@@ -148,18 +153,22 @@ class AudioVisualizerMobile extends HTMLElement {
         title: 'You Belong.', artist: 'Wildcat 91.9', album: 'Live Stream',
         artwork: [{ src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png', sizes: '512x512', type: 'image/png' }]
       });
-      navigator.mediaSession.setActionHandler('play',  () => audio.play());
-      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+      navigator.mediaSession.setActionHandler('play',  () => { audio.play(); audioTap.play().catch(()=>{}); });
+      navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); audioTap.pause(); });
     }
 
-    /* ── Audio setup (immediate, not inside click) ── */
+    /* ── Audio setup ──
+       iOS won't keep AudioContext alive in background, but plain <audio> will.
+       Solution: primary <audio> plays unmuted via system pipeline (background-safe).
+       Muted <audio> tap feeds the AudioContext analyser for visuals only. ── */
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser  = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.55;
-    const src = audioCtx.createMediaElementSource(audio);
-    src.connect(analyser);
-    src.connect(audioCtx.destination);
+    // Wire the MUTED tap into AudioContext — never the primary audio element
+    const tapSrc = audioCtx.createMediaElementSource(audioTap);
+    tapSrc.connect(analyser);
+    // No connect to destination — it's muted, we don't want to hear it
     const freqData = new Uint8Array(analyser.frequencyBinCount);
     const waveData = new Uint8Array(analyser.fftSize);
 
@@ -247,16 +256,17 @@ class AudioVisualizerMobile extends HTMLElement {
     /* ── Click / tap handler ── */
     logo.addEventListener('click', () => {
       if (audio.paused) {
-        // Reset src to reconnect to live edge, never resume from cached position
-        audio.src = 'https://s.radiowave.io/ksdb.mp3';
-        audio.load();
-        audio.play();
+        // Reset both streams to live edge
+        audio.src    = 'https://s.radiowave.io/ksdb.mp3';
+        audioTap.src = 'https://s.radiowave.io/ksdb.mp3';
+        audio.load();    audioTap.load();
+        audio.play();    audioTap.play();
         audioCtx.resume();
         logo.classList.add('playing');
         hint.style.opacity = '0';
         startViz();
       } else {
-        audio.pause();
+        audio.pause();    audioTap.pause();
         logo.classList.remove('playing');
         hint.style.opacity = '1';
         stopViz();
@@ -268,19 +278,25 @@ class AudioVisualizerMobile extends HTMLElement {
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        // Pause animation to save CPU/GPU — audio keeps playing via native wrapper
+        // Pause animation + muted tap (no point analysing in background)
+        // Primary audio keeps playing via native wrapper
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        audioTap.pause();
       } else {
         // App foregrounded
         if (!audio.paused) {
           if (isIOS) {
-            // iOS: force pause/play cycle to restore audio pipeline
+            // iOS: force pause/play cycle on primary to restore audio pipeline
             audio.pause();
             audio.play().catch(() => {});
           }
-          // Resume AudioContext if suspended
-          if (audioCtx.state === 'suspended') audioCtx.resume();
-          // Restart animation loop
+          // Resume tap + AudioContext for visualizer
+          audioTap.src = 'https://s.radiowave.io/ksdb.mp3';
+          audioTap.load();
+          audioTap.play().catch(() => {});
+          if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
+            audioCtx.resume();
+          }
           if (!rafId) loop();
         }
       }
