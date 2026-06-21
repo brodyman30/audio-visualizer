@@ -228,13 +228,28 @@ class AudioVisualizer extends HTMLElement {
       stopIOSBolts();
     }
 
-    // NEW: When returning to the app on iOS, force a pause/play cycle
-    // to restore audio output. iOS disconnects the audio pipeline when
-    // backgrounded — the stream stays "playing" but goes silent.
+    // Visibility: pause animations when app is minimized to save CPU/GPU.
+    // Audio keeps playing — the native app wrapper handles background audio.
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && !audio.paused && isIOS) {
-        audio.pause();
-        audio.play().catch(() => {});
+      if (document.hidden) {
+        // Pause all animation work
+        if (androidLoopId) { cancelAnimationFrame(androidLoopId); androidLoopId = null; }
+        stopIOSBolts();
+      } else {
+        // App foregrounded — resume what was running
+        if (!audio.paused) {
+          if (isIOS) {
+            // iOS: force a pause/play cycle to restore audio pipeline
+            // (iOS disconnects the audio pipeline when backgrounded)
+            audio.pause();
+            audio.play().catch(() => {});
+            startIOSBolts();
+          } else {
+            // Android: resume AudioContext if suspended, restart loop
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            if (!androidLoopId) startAndroidVisualizer();
+          }
+        }
       }
     });
 
