@@ -243,14 +243,21 @@ class AudioVisualizer extends HTMLElement {
     }
 
     /* ── Beat detection ── */
-    const beatHist = new Array(30).fill(0);
+    const beatHist = new Array(43).fill(0); // longer window = stabler adaptive baseline
     let lastBeat   = 0;
 
     function bassEnergy() {
-      // Bottom 15% of bins = sub-bass + bass + low-mid, catches all genres
+      // Bottom 15% = sub-bass + bass + low-mid (catches rap, pop)
       const end = Math.floor(analyser.frequencyBinCount * 0.15);
       let s = 0; for (let i = 0; i < end; i++) s += freqData[i];
       return s / (end * 255);
+    }
+    function midEnergy() {
+      // 15–40% of bins = low-mid + mid (snare, guitar attack, metal punch)
+      const start = Math.floor(analyser.frequencyBinCount * 0.15);
+      const end   = Math.floor(analyser.frequencyBinCount * 0.40);
+      let s = 0; for (let i = start; i < end; i++) s += freqData[i];
+      return s / ((end - start) * 255);
     }
     function fullEnergy() {
       const end = Math.floor(analyser.frequencyBinCount * 0.5);
@@ -258,11 +265,19 @@ class AudioVisualizer extends HTMLElement {
       return s / (end * 255);
     }
     function detectBeat() {
-      const e = bassEnergy();
+      const bass = bassEnergy();
+      const mid  = midEnergy();
+      // Use whichever is stronger — bass for rap/pop, mid for metal/rock
+      const e = Math.max(bass, mid * 0.85);
       beatHist.push(e); beatHist.shift();
       const avg = beatHist.reduce((a, b) => a + b, 0) / beatHist.length;
       const now = performance.now();
-      if (e > avg * 1.2 && e > 0.03 && now - lastBeat > 200) { lastBeat = now; return true; }
+      // Adaptive multiplier: high-energy genres (metal) get a lower bar (1.12)
+      // low-energy genres (acoustic) keep sensitivity (1.18)
+      const multiplier = avg > 0.15 ? 1.12 : 1.18;
+      if (e > avg * multiplier && e > 0.025 && now - lastBeat > 180) {
+        lastBeat = now; return true;
+      }
       return false;
     }
 
