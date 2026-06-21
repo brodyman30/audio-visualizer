@@ -598,6 +598,8 @@ class AudioVisualizer extends HTMLElement {
     /* ── Click handler — same pattern as original (sync, no async/await) ── */
     logo.addEventListener('click', () => {
       if (audio.paused) {
+        // Reset src to reconnect to live edge, never resume from cached position
+        audio.src = 'https://s.radiowave.io/ksdb.mp3';
         audio.load();
         audio.play();
         audioCtx.resume();

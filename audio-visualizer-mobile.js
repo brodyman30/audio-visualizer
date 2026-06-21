@@ -247,6 +247,8 @@ class AudioVisualizerMobile extends HTMLElement {
     /* ── Click / tap handler ── */
     logo.addEventListener('click', () => {
       if (audio.paused) {
+        // Reset src to reconnect to live edge, never resume from cached position
+        audio.src = 'https://s.radiowave.io/ksdb.mp3';
         audio.load();
         audio.play();
         audioCtx.resume();
