@@ -11,11 +11,13 @@ class AudioVisualizerMobile extends HTMLElement {
         }
 
         .av-m-root {
-          position: relative;
-          width: 220px;
-          height: 220px;
+          position: fixed;
+          top: 0; left: 0;
+          width: 100vw;
+          height: 100dvh;
+          height: 100vh;
           background: #000;
-          border-radius: 16px;
+          border-radius: 0;
           overflow: hidden;
           font-family: 'Polymath', 'Courier New', monospace;
         }
@@ -33,14 +35,12 @@ class AudioVisualizerMobile extends HTMLElement {
           );
           pointer-events: none;
           z-index: 6;
-          border-radius: 16px;
         }
 
         #av-m-bg, #av-m-canvas {
           position: absolute;
           top: 0; left: 0;
           width: 100%; height: 100%;
-          border-radius: 16px;
         }
         #av-m-bg     { z-index: 0; }
         #av-m-canvas { z-index: 1; pointer-events: none; }
@@ -50,7 +50,7 @@ class AudioVisualizerMobile extends HTMLElement {
           position: absolute;
           top: 50%; left: 50%;
           transform: translate(-50%, -50%);
-          width: 80px; height: 80px;
+          width: 140px; height: 140px;
           z-index: 4;
           cursor: pointer;
           border-radius: 50%;
@@ -73,10 +73,10 @@ class AudioVisualizerMobile extends HTMLElement {
 
         /* Station label */
         .av-m-station {
-          position: absolute;
-          bottom: 10px; left: 0; right: 0;
-          text-align: center;
-          font-size: 8px;
+          position: fixed;
+          bottom: max(24px, env(safe-area-inset-bottom, 24px));
+          left: max(24px, env(safe-area-inset-left, 24px));
+          font-size: 11px;
           letter-spacing: 0.2em;
           text-transform: uppercase;
           color: rgba(255,255,255,0.3);
@@ -86,16 +86,15 @@ class AudioVisualizerMobile extends HTMLElement {
 
         /* Hint */
         .av-m-hint {
-          position: absolute;
-          top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 8px;
+          position: fixed;
+          bottom: max(24px, env(safe-area-inset-bottom, 24px));
+          right: max(24px, env(safe-area-inset-right, 24px));
+          font-size: 11px;
           letter-spacing: 0.18em;
           text-transform: uppercase;
-          color: rgba(255,255,255,0.4);
+          color: rgba(255,255,255,0.3);
           pointer-events: none;
           z-index: 5;
-          margin-top: 56px;
           white-space: nowrap;
           transition: opacity 0.4s ease;
         }
@@ -117,17 +116,28 @@ class AudioVisualizerMobile extends HTMLElement {
       </div>
     `;
 
-    const W = 220, H = 220;
-
-    const root      = this.querySelector('#av-m-root');
-    const audio     = this.querySelector('#av-m-audio');
-    const logo      = this.querySelector('#av-m-logo');
-    const hint      = this.querySelector('#av-m-hint');
-    const bgCanvas  = this.querySelector('#av-m-bg');
+    const root       = this.querySelector('#av-m-root');
+    const audio      = this.querySelector('#av-m-audio');
+    const logo       = this.querySelector('#av-m-logo');
+    const hint       = this.querySelector('#av-m-hint');
+    const bgCanvas   = this.querySelector('#av-m-bg');
     const mainCanvas = this.querySelector('#av-m-canvas');
 
-    bgCanvas.width  = mainCanvas.width  = W;
-    bgCanvas.height = mainCanvas.height = H;
+    let W = window.innerWidth, H = window.innerHeight;
+    function resize() {
+      W = bgCanvas.width  = mainCanvas.width  = window.innerWidth;
+      H = bgCanvas.height = mainCanvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Inject scroll lock into host page
+    if (!document.getElementById('av-m-scroll-lock')) {
+      const s = document.createElement('style');
+      s.id = 'av-m-scroll-lock';
+      s.textContent = 'html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;position:fixed;touch-action:none;}';
+      document.head.appendChild(s);
+    }
 
     const bgCtx  = bgCanvas.getContext('2d');
     const ctx    = mainCanvas.getContext('2d');
