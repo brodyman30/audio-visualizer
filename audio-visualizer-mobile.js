@@ -114,9 +114,9 @@ class AudioVisualizerMobile extends HTMLElement {
         <!-- Primary: plain audio for background-safe playback on iOS -->
         <audio id="av-m-audio" src="https://s.radiowave.io/ksdb.mp3"
                crossorigin="anonymous" playsinline></audio>
-        <!-- Analyser tap: muted clone fed into AudioContext for visualizer only -->
+        <!-- Analyser tap: clone fed into AudioContext for visualizer only -->
         <audio id="av-m-tap" src="https://s.radiowave.io/ksdb.mp3"
-               crossorigin="anonymous" playsinline muted></audio>
+               crossorigin="anonymous" playsinline></audio>
       </div>
     `;
 
@@ -165,10 +165,14 @@ class AudioVisualizerMobile extends HTMLElement {
     const analyser  = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.55;
-    // Wire the MUTED tap into AudioContext — never the primary audio element
-    const tapSrc = audioCtx.createMediaElementSource(audioTap);
+    // Wire tap into AudioContext — silence it via a gain node (not HTML muted attr)
+    // HTML muted blocks data flow into AudioContext on iOS/WebKit
+    const tapSrc  = audioCtx.createMediaElementSource(audioTap);
+    const silencer = audioCtx.createGain();
+    silencer.gain.value = 0;  // silent but data still flows to analyser
     tapSrc.connect(analyser);
-    // No connect to destination — it's muted, we don't want to hear it
+    tapSrc.connect(silencer);
+    silencer.connect(audioCtx.destination); // must connect to destination or iOS optimizes it away
     const freqData = new Uint8Array(analyser.frequencyBinCount);
     const waveData = new Uint8Array(analyser.fftSize);
 
