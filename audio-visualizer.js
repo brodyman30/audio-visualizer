@@ -95,14 +95,18 @@ class AudioVisualizer extends HTMLElement {
 
         /* Station / hint */
         .av-station {
-          position: fixed; bottom: 28px; left: 28px;
+          position: fixed;
+          bottom: max(28px, env(safe-area-inset-bottom, 28px));
+          left: max(28px, env(safe-area-inset-left, 28px));
           z-index: 10; color: rgba(255,255,255,0.3);
           font-family: 'Polymath', 'Courier New', monospace;
           font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
           pointer-events: none;
         }
         .av-hint {
-          position: fixed; bottom: 28px; right: 28px;
+          position: fixed;
+          bottom: max(28px, env(safe-area-inset-bottom, 28px));
+          right: max(28px, env(safe-area-inset-right, 28px));
           z-index: 10; color: rgba(255,255,255,0.3);
           font-family: 'Polymath', 'Courier New', monospace;
           font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
@@ -607,6 +611,23 @@ class AudioVisualizer extends HTMLElement {
         logo.classList.remove('playing');
         hint.style.opacity = '1';
         stopViz();
+      }
+    });
+
+    /* ── Visibility — pause animation when app is minimized, keep audio alive ── */
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // App backgrounded: cancel animation loop to save CPU/GPU
+        // Audio keeps playing — the native app wrapper handles background audio
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      } else {
+        // App foregrounded: resume AudioContext (iOS suspends it when backgrounded)
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        // Restart animation loop if audio is still playing
+        if (!audio.paused && !rafId) {
+          modeStart = performance.now(); // reset timer so mode doesn't instantly skip
+          loop();
+        }
       }
     });
   }

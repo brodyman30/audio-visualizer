@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#000000" />
   <title>Wildcat 91.9 — Audio Visualizer</title>
   <style>
     html, body {
@@ -12,11 +16,16 @@
       height: 100%;
       overflow: hidden;
       background: #000;
+      /* Prevent iOS bounce/overscroll */
+      position: fixed;
+      touch-action: none;
     }
     audio-visualizer {
       display: block;
       width: 100vw;
-      height: 100vh;
+      /* Use dvh for mobile — accounts for browser chrome appearing/disappearing */
+      height: 100dvh;
+      height: 100vh; /* fallback */
     }
   </style>
 </head>
