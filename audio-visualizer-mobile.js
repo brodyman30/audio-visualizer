@@ -1,287 +1,279 @@
-class AudioVisualizer extends HTMLElement {
+class AudioVisualizerMobile extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
       <style>
-        .container {
+        @font-face {
+          font-family: 'Polymath';
+          src: url('Polymath-LightIt.woff2') format('woff2');
+          font-weight: 300;
+          font-style: italic;
+          font-display: swap;
+        }
+
+        .av-m-root {
           position: relative;
           width: 220px;
           height: 220px;
+          background: #000;
+          border-radius: 16px;
+          overflow: hidden;
+          font-family: 'Polymath', 'Courier New', monospace;
         }
 
-        .logo {
+        /* Scanlines overlay */
+        .av-m-root::after {
+          content: '';
+          position: absolute; inset: 0;
+          background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0,0,0,0.18) 2px,
+            rgba(0,0,0,0.18) 4px
+          );
+          pointer-events: none;
+          z-index: 6;
+          border-radius: 16px;
+        }
+
+        #av-m-bg, #av-m-canvas {
           position: absolute;
-          top: 58%;
-          left: 50%;
-          width: 150px;
-          height: 150px;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
+          border-radius: 16px;
+        }
+        #av-m-bg     { z-index: 0; }
+        #av-m-canvas { z-index: 1; pointer-events: none; }
+
+        /* Logo */
+        .av-m-logo {
+          position: absolute;
+          top: 50%; left: 50%;
           transform: translate(-50%, -50%);
-          z-index: 2;
+          width: 80px; height: 80px;
+          z-index: 4;
           cursor: pointer;
+          border-radius: 50%;
+          transition: transform 0.2s ease;
         }
-
-        .logo img {
-          width: 100%;
-          height: 100%;
-          border-radius: 12px;
+        .av-m-logo:active { transform: translate(-50%, -50%) scale(0.93); }
+        .av-m-logo.playing {
+          animation: av-m-pulse 2s ease-in-out infinite;
+        }
+        .av-m-logo img {
+          width: 100%; height: 100%;
           object-fit: contain;
           pointer-events: none;
-        }
-
-        .visualizer-circle,
-        #bolts {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-        }
-
-        .bar {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 4px;
-          height: 30px;
-          background: linear-gradient(to top, #8262a9, #fdc259);
-          transform-origin: center bottom;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          border-radius: 50px;
-        }
-
-        .bolt {
-          position: absolute;
-          top: calc(67% - 90px);
-          left: 69%;
-          width: 40px;
-          height: 40px;
-          opacity: 0;
-          transform: translate(-50%, -50%);
-        }
-
-        .bolt img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
           display: block;
-          filter: drop-shadow(0 0 8px #fdc259) drop-shadow(0 0 16px #fdc259);
-          animation: glowPulse 1s infinite alternate;
+        }
+        @keyframes av-m-pulse {
+          0%, 100% { filter: drop-shadow(0 0 4px rgba(130,98,169,0.6)); }
+          50%       { filter: drop-shadow(0 0 12px rgba(130,98,169,0.9)); }
         }
 
-        @keyframes glowPulse {
-          0% {
-            filter: drop-shadow(0 0 6px #fdc259) drop-shadow(0 0 12px #fdc259);
-          }
-          100% {
-            filter: drop-shadow(0 0 14px #fdc259) drop-shadow(0 0 28px #fdc259);
-          }
+        /* Station label */
+        .av-m-station {
+          position: absolute;
+          bottom: 10px; left: 0; right: 0;
+          text-align: center;
+          font-size: 8px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.3);
+          pointer-events: none;
+          z-index: 5;
         }
 
-        @keyframes boltShoot {
-          0% {
-            opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0);
-          }
-          60% {
-            opacity: 1;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--d1));
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--d2));
-          }
+        /* Hint */
+        .av-m-hint {
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 8px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          pointer-events: none;
+          z-index: 5;
+          margin-top: 56px;
+          white-space: nowrap;
+          transition: opacity 0.4s ease;
         }
       </style>
 
-      <div class="container">
-        <div class="visualizer-circle" id="visualizer-circle">
-          ${Array.from({ length: 48 }, () => '<div class="bar"></div>').join('')}
+      <div class="av-m-root" id="av-m-root">
+        <canvas id="av-m-bg"></canvas>
+        <canvas id="av-m-canvas"></canvas>
+
+        <div class="av-m-logo" id="av-m-logo">
+          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Wildcat 91.9" />
         </div>
 
-        <div class="logo" id="logo">
-          <img src="https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png" alt="Logo" />
-        </div>
+        <div class="av-m-station">WILDCAT 91.9 · LIVE</div>
+        <div class="av-m-hint" id="av-m-hint">TAP TO PLAY</div>
 
-        <audio id="audio" src="https://s.radiowave.io/ksdb.mp3" crossorigin="anonymous" playsinline></audio>
-
-        <div id="bolts">
-          ${[0, 1, 2].map(() => `
-            <div class="bolt">
-              <img src="https://static.wixstatic.com/media/eaaa6a_0ce7ee88c3894941bcb1da72a58d1c0e~mv2.png" />
-            </div>
-          `).join('')}
-        </div>
+        <audio id="av-m-audio" src="https://s.radiowave.io/ksdb.mp3"
+               crossorigin="anonymous" playsinline></audio>
       </div>
     `;
 
-    const audio = this.querySelector('#audio');
-    const logo = this.querySelector('#logo');
-    const bars = this.querySelectorAll('#visualizer-circle .bar');
-    const bolts = this.querySelectorAll('#bolts .bolt');
+    const W = 220, H = 220;
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const root      = this.querySelector('#av-m-root');
+    const audio     = this.querySelector('#av-m-audio');
+    const logo      = this.querySelector('#av-m-logo');
+    const hint      = this.querySelector('#av-m-hint');
+    const bgCanvas  = this.querySelector('#av-m-bg');
+    const mainCanvas = this.querySelector('#av-m-canvas');
 
-    let audioCtx = null;
-    let analyser = null;
-    let androidLoopId = null;
-    let iosIntervalId = null;
+    bgCanvas.width  = mainCanvas.width  = W;
+    bgCanvas.height = mainCanvas.height = H;
 
+    const bgCtx  = bgCanvas.getContext('2d');
+    const ctx    = mainCanvas.getContext('2d');
+
+    /* ── Media Session ── */
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'You Belong.',
-        artist: 'Wildcat 91.9',
-        album: 'Live Stream',
-        artwork: [
-          { src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png', sizes: '512x512', type: 'image/png' }
-        ]
+        title: 'You Belong.', artist: 'Wildcat 91.9', album: 'Live Stream',
+        artwork: [{ src: 'https://static.wixstatic.com/media/eaaa6a_025d2967304a4a619c482e79944f38d9~mv2.png', sizes: '512x512', type: 'image/png' }]
       });
-
-      navigator.mediaSession.setActionHandler('play', () => audio.play());
+      navigator.mediaSession.setActionHandler('play',  () => audio.play());
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
     }
 
-    bars.forEach((bar, i) => {
-      const angleDeg = (i / bars.length) * 360;
-      bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(0.5)`;
-    });
+    /* ── Audio setup (immediate, not inside click) ── */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser  = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.55;
+    const src = audioCtx.createMediaElementSource(audio);
+    src.connect(analyser);
+    src.connect(audioCtx.destination);
+    const freqData = new Uint8Array(analyser.frequencyBinCount);
+    const waveData = new Uint8Array(analyser.fftSize);
 
-    const bufferLength = 128;
-    const dataArray = new Uint8Array(bufferLength);
+    /* ── State ── */
+    let rafId     = null;
+    let isPlaying = false;
+    let bgHue     = 260;
 
-    function startAndroidVisualizer() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-
-        const source = audioCtx.createMediaElementSource(audio);
-        source.connect(analyser);
-        source.connect(audioCtx.destination);
-      }
-
-      bars.forEach(bar => (bar.style.opacity = '1'));
-
-      function loop() {
-        analyser.getByteFrequencyData(dataArray);
-
-        const halfBars = bars.length / 2;
-        bars.forEach((bar, i) => {
-          const binIdx = Math.floor((i % halfBars) / halfBars * (bufferLength / 2));
-          const value = dataArray[binIdx] || 0;
-          const scale = Math.max(value / 128, 0.5);
-          const angleDeg = (i / bars.length) * 360;
-          bar.style.transform = `rotate(${angleDeg}deg) translateY(-70px) scaleY(${scale})`;
-        });
-
-        androidLoopId = requestAnimationFrame(loop);
-      }
-
-      loop();
+    /* ── Background: slow hue-shifting radial gradient ── */
+    function drawBg(energy) {
+      bgHue = (bgHue + 0.03) % 360;
+      const pulse = 0.04 + energy * 0.08;
+      bgCtx.fillStyle = '#000';
+      bgCtx.fillRect(0, 0, W, H);
+      const grad = bgCtx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W * 0.7);
+      grad.addColorStop(0,   `hsla(${bgHue}, 60%, 12%, ${pulse})`);
+      grad.addColorStop(0.5, `hsla(${bgHue + 30}, 50%, 8%, ${pulse * 0.5})`);
+      grad.addColorStop(1,   'transparent');
+      bgCtx.fillStyle = grad;
+      bgCtx.fillRect(0, 0, W, H);
     }
 
-    const boltAngles = [-45, 0, 45];
-    let boltIndex = 0;
+    /* ── Waveform: 3 layered oscilloscope waves ── */
+    const WAVES = [
+      { rgba: '130,98,169', alpha: 0.55, lw: 1.2, yOff: -18 }, // purple upper
+      { rgba: '253,194,89', alpha: 0.85, lw: 1.8, yOff:   0 }, // yellow center
+      { rgba: '130,98,169', alpha: 0.40, lw: 1.0, yOff:  18 }, // purple lower
+    ];
+    let wavePhase = 0;
 
-    function shootBolt(bolt, angle) {
-      const d1 = Math.floor(Math.random() * 40 + 60);
-      const d2 = d1 + Math.floor(Math.random() * 40 + 40);
+    function drawWaveform(energy) {
+      analyser.getByteTimeDomainData(waveData);
+      ctx.clearRect(0, 0, W, H);
 
-      bolt.style.setProperty('--angle', `${angle}deg`);
-      bolt.style.setProperty('--d1', `-${d1}px`);
-      bolt.style.setProperty('--d2', `-${d2}px`);
+      const amp   = 0.28 + energy * 0.18; // gentler movement on small screen
+      wavePhase  += 0.012;
 
-      bolt.style.animation = 'none';
-      bolt.offsetHeight;
-      bolt.style.animation = 'boltShoot 1s ease-out forwards';
+      WAVES.forEach(({ rgba, alpha, lw, yOff }) => {
+        ctx.beginPath();
+        ctx.lineWidth   = lw;
+        ctx.strokeStyle = `rgba(${rgba}, ${alpha})`;
+        ctx.shadowColor = `rgba(${rgba}, 0.5)`;
+        ctx.shadowBlur  = 6;
 
-      bolt.addEventListener('animationend', () => {
-        bolt.style.opacity = '0';
-        bolt.style.animation = 'none';
-      }, { once: true });
-    }
-
-    function startIOSBolts() {
-      if (iosIntervalId) return;
-      iosIntervalId = setInterval(() => {
-        const bolt = bolts[boltIndex % bolts.length];
-        const angle = boltAngles[boltIndex % boltAngles.length];
-        shootBolt(bolt, angle);
-        boltIndex++;
-      }, 400);
-    }
-
-    function stopIOSBolts() {
-      if (!iosIntervalId) return;
-      clearInterval(iosIntervalId);
-      iosIntervalId = null;
-      bolts.forEach(b => (b.style.opacity = 0));
-    }
-
-    function pauseCleanup() {
-      bars.forEach(bar => (bar.style.opacity = '0'));
-      if (androidLoopId) {
-        cancelAnimationFrame(androidLoopId);
-        androidLoopId = null;
-      }
-      stopIOSBolts();
-    }
-
-    // Visibility: pause animations when app is minimized to save CPU/GPU.
-    // Audio keeps playing — the native app wrapper handles background audio.
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        // Pause all animation work
-        if (androidLoopId) { cancelAnimationFrame(androidLoopId); androidLoopId = null; }
-        stopIOSBolts();
-      } else {
-        // App foregrounded — resume what was running
-        if (!audio.paused) {
-          if (isIOS) {
-            // iOS: force a pause/play cycle to restore audio pipeline
-            // (iOS disconnects the audio pipeline when backgrounded)
-            audio.pause();
-            audio.play().catch(() => {});
-            startIOSBolts();
-          } else {
-            // Android: resume AudioContext if suspended, restart loop
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            if (!androidLoopId) startAndroidVisualizer();
-          }
+        const slice = W / (waveData.length - 1);
+        for (let i = 0; i < waveData.length; i++) {
+          const raw  = (waveData[i] / 128) - 1;
+          const wave = raw * amp * H * 0.22;
+          const drift = Math.sin(i * 0.012 + wavePhase + yOff * 0.04) * 3 * energy;
+          const x = i * slice;
+          const y = H / 2 + yOff + wave + drift;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
-      }
-    });
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      });
+    }
 
-    logo.addEventListener('click', async () => {
+    /* ── Animation loop ── */
+    function loop() {
+      rafId = requestAnimationFrame(loop);
+      analyser.getByteFrequencyData(freqData);
+      const energy = (() => {
+        const end = Math.floor(analyser.frequencyBinCount * 0.5);
+        let s = 0; for (let i = 0; i < end; i++) s += freqData[i];
+        return s / (end * 255);
+      })();
+      drawBg(energy);
+      drawWaveform(energy);
+    }
+
+    function startViz() {
+      isPlaying = true;
+      if (!rafId) loop();
+    }
+
+    function stopViz() {
+      isPlaying = false;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      ctx.clearRect(0, 0, W, H);
+      bgCtx.fillStyle = '#000';
+      bgCtx.fillRect(0, 0, W, H);
+    }
+
+    /* ── Click / tap handler ── */
+    logo.addEventListener('click', () => {
       if (audio.paused) {
-        await audio.play();
-        if (isIOS) {
-          startIOSBolts();
-        } else {
-          if (audioCtx && audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-          }
-          startAndroidVisualizer();
-        }
+        audio.load();
+        audio.play();
+        audioCtx.resume();
+        logo.classList.add('playing');
+        hint.style.opacity = '0';
+        startViz();
       } else {
         audio.pause();
-        pauseCleanup();
+        logo.classList.remove('playing');
+        hint.style.opacity = '1';
+        stopViz();
+      }
+    });
+
+    /* ── Visibility: pause animations when minimized, keep audio alive ── */
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Pause animation to save CPU/GPU — audio keeps playing via native wrapper
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      } else {
+        // App foregrounded
+        if (!audio.paused) {
+          if (isIOS) {
+            // iOS: force pause/play cycle to restore audio pipeline
+            audio.pause();
+            audio.play().catch(() => {});
+          }
+          // Resume AudioContext if suspended
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          // Restart animation loop
+          if (!rafId) loop();
+        }
       }
     });
   }
 }
 
-customElements.define('audio-visualizer-mobile', AudioVisualizer);
-
-
-
-
-
-
-
-
-
-
-
-
+customElements.define('audio-visualizer-mobile', AudioVisualizerMobile);
