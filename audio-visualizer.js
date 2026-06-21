@@ -253,9 +253,9 @@ class AudioVisualizer extends HTMLElement {
       return s / (end * 255);
     }
     function midEnergy() {
-      // 15–40% of bins = low-mid + mid (snare, guitar attack, metal punch)
-      const start = Math.floor(analyser.frequencyBinCount * 0.15);
-      const end   = Math.floor(analyser.frequencyBinCount * 0.40);
+      // 10–55% of bins = low-mid through upper-mid (snare, guitar, alt/rock crunch)
+      const start = Math.floor(analyser.frequencyBinCount * 0.10);
+      const end   = Math.floor(analyser.frequencyBinCount * 0.55);
       let s = 0; for (let i = start; i < end; i++) s += freqData[i];
       return s / ((end - start) * 255);
     }
@@ -267,15 +267,14 @@ class AudioVisualizer extends HTMLElement {
     function detectBeat() {
       const bass = bassEnergy();
       const mid  = midEnergy();
-      // Use whichever is stronger — bass for rap/pop, mid for metal/rock
-      const e = Math.max(bass, mid * 0.85);
+      // Blend bass + mids — gives alt/rock equal weight to rap/pop
+      const e = Math.max(bass, mid * 0.9);
       beatHist.push(e); beatHist.shift();
       const avg = beatHist.reduce((a, b) => a + b, 0) / beatHist.length;
       const now = performance.now();
-      // Adaptive multiplier: high-energy genres (metal) get a lower bar (1.12)
-      // low-energy genres (acoustic) keep sensitivity (1.18)
-      const multiplier = avg > 0.15 ? 1.12 : 1.18;
-      if (e > avg * multiplier && e > 0.025 && now - lastBeat > 180) {
+      // Adaptive multiplier: scales down as avg energy rises (metal/rock)
+      const multiplier = avg > 0.18 ? 1.08 : avg > 0.10 ? 1.12 : 1.16;
+      if (e > avg * multiplier && e > 0.018 && now - lastBeat > 170) {
         lastBeat = now; return true;
       }
       return false;
