@@ -17,6 +17,13 @@ class AudioVisualizer extends HTMLElement {
           font-style: italic;
           font-display: swap;
         }
+        @font-face {
+          font-family: 'Polymath';
+          src: url('Polymath-Bold.woff2') format('woff2');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
+        }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -27,6 +34,8 @@ class AudioVisualizer extends HTMLElement {
           overflow: hidden;
           background: #000;
           font-family: 'Polymath', 'Courier New', monospace;
+          font-weight: 300;
+          font-style: italic;
         }
 
         #av-bg-canvas,
@@ -78,6 +87,8 @@ class AudioVisualizer extends HTMLElement {
           position: fixed; top: 22px; left: 28px;
           z-index: 10; color: rgba(255,255,255,0.5);
           font-family: 'Polymath', 'Courier New', monospace;
+          font-weight: 300;
+          font-style: italic;
           font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
           pointer-events: none; display: none;
         }
@@ -100,6 +111,8 @@ class AudioVisualizer extends HTMLElement {
           left: max(28px, env(safe-area-inset-left, 28px));
           z-index: 10; color: rgba(255,255,255,0.3);
           font-family: 'Polymath', 'Courier New', monospace;
+          font-weight: 300;
+          font-style: italic;
           font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
           pointer-events: none;
         }
@@ -109,6 +122,8 @@ class AudioVisualizer extends HTMLElement {
           right: max(28px, env(safe-area-inset-right, 28px));
           z-index: 10; color: rgba(255,255,255,0.3);
           font-family: 'Polymath', 'Courier New', monospace;
+          font-weight: 300;
+          font-style: italic;
           font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
           pointer-events: none;
         }
@@ -196,8 +211,8 @@ class AudioVisualizer extends HTMLElement {
     const bgCtx      = bgCanvas.getContext('2d');
     const ctx        = mainCanvas.getContext('2d');
 
-    /* ── Stars (static background for galaxy mode) ── */
-    const PCNT = 300;
+    /* ── Stars (drifting field above the horizon) ── */
+    const PCNT = 420;
     let particles = [];
     function buildParticles() {
       return Array.from({ length: PCNT }, () => ({
@@ -211,11 +226,24 @@ class AudioVisualizer extends HTMLElement {
     }
     particles = buildParticles();
 
-    /* ── Canvas size ── */
+    /* ── YOU BELONG mode state (declared early: resize() rebuilds the trace) ── */
+    let ybFlash = 0;
+
+    /* ── Canvas size — DPI-aware so thin lines stay crisp on retina/4K ── */
     let W = window.innerWidth, H = window.innerHeight;
     function resize() {
-      W = bgCanvas.width = mainCanvas.width = window.innerWidth;
-      H = bgCanvas.height = mainCanvas.height = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      [bgCanvas, mainCanvas].forEach(c => {
+        c.width  = Math.round(W * dpr);
+        c.height = Math.round(H * dpr);
+        c.style.width  = W + 'px';
+        c.style.height = H + 'px';
+      });
+      // Draw in CSS pixels; the backing store handles the extra resolution
+      bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       particles = buildParticles();
     }
     resize();
@@ -281,7 +309,7 @@ class AudioVisualizer extends HTMLElement {
     }
 
     /* ── Mode cycling (time-based) ── */
-    const MODES    = ['WAVEFORM', 'PARTICLES', 'RADIAL BLOOM'];
+    const MODES    = ['WAVEFORM', 'YOU BELONG', 'RADIAL BLOOM'];
     const MODE_MS  = 20000;
     let mode       = 0;
     let modeStart  = 0;
@@ -296,6 +324,7 @@ class AudioVisualizer extends HTMLElement {
       wavePhase   = 0;
       particles   = buildParticles();
       bloomRings  = [];
+      resetYouBelong();
       doTransition();
     }
 
@@ -386,96 +415,187 @@ class AudioVisualizer extends HTMLElement {
     }
 
     /* ══════════════════════════════════════════
-       MODE 1 — PARTICLES
+       MODE 1 — YOU BELONG
+       A wall of vertical lines moving in unison on a slow wave,
+       with the words carved through as negative space — the
+       letters are the gaps where the lines drop out. The audio
+       swells the wall. Logo centered as play/pause.
     ══════════════════════════════════════════ */
-    // Galaxy mode — orbital ring definitions (rx/ry as fraction of min(W,H)*0.5)
-    const ORBITALS = [
-      { rx: 0.38, ry: 0.07, tilt: -0.18, rot: 0.0, spd: 0.00030, vel: 0.00030, rgb: '130,98,169',  lw: 1.6, baseAlpha: 0.55 },
-      { rx: 0.52, ry: 0.10, tilt:  0.22, rot: 1.1, spd: 0.00022, vel: 0.00022, rgb: '253,194,89',  lw: 1.2, baseAlpha: 0.40 },
-      { rx: 0.65, ry: 0.13, tilt: -0.10, rot: 2.3, spd: 0.00016, vel: 0.00016, rgb: '130,98,169',  lw: 1.0, baseAlpha: 0.30 },
-      { rx: 0.78, ry: 0.16, tilt:  0.30, rot: 0.7, spd: 0.00010, vel: 0.00010, rgb: '180,140,220', lw: 0.8, baseAlpha: 0.20 },
-      { rx: 0.90, ry: 0.19, tilt: -0.25, rot: 1.9, spd: 0.00007, vel: 0.00007, rgb: '253,194,89',  lw: 0.7, baseAlpha: 0.15 },
-    ];
-    let gBeatFlash = 0;
 
-    function drawParticles(energy, isBeat) {
-      ctx.clearRect(0, 0, W, H);
-      const cx = W / 2, cy = H / 2 + 9;
-      const R  = Math.min(W, H) * 0.5;
+    let ybFontReady = false;
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load('700 100px Polymath').then(() => { ybFontReady = true; });
+      document.fonts.ready.then(() => { ybFontReady = true; });
+    } else {
+      ybFontReady = true;
+    }
 
-      if (isBeat) {
-        gBeatFlash = 1.0;
-        // Kick each orbital to ~8x its base speed; they coast back down
-        ORBITALS.forEach(o => { o.vel = o.spd * 8 * (1 + energy * 4); });
-      }
-      gBeatFlash *= 0.84;
-      // Decay orbital velocity back toward base speed each frame
-      ORBITALS.forEach(o => { o.vel += (o.spd - o.vel) * 0.06; });
+    function resetYouBelong() { ybFlash = 0; }
 
-      // Nebula glow
-      const nebA = 0.06 + energy * 0.10 + gBeatFlash * 0.08;
-      const neb  = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.1);
-      neb.addColorStop(0,   `rgba(80,40,130,${nebA.toFixed(3)})`);
-      neb.addColorStop(0.5, `rgba(40,10,80,${(nebA*0.5).toFixed(3)})`);
-      neb.addColorStop(1,   'rgba(0,0,0,0)');
-      ctx.fillStyle = neb;
-      ctx.fillRect(0, 0, W, H);
+    /* Rasterize "YOU BELONG" once into a mask we can test per-column.
+       For each x we store the y-ranges that are INSIDE a letter, so the
+       wall lines know where to drop out. */
+    let ybMask = null, ybMaskW = 0, ybMaskH = 0;
+    let ybScroll = 0;
 
-      // Star field — static, twinkle with energy
-      particles.forEach(p => {
-        p.tw += p.ts;
-        const tw = 0.5 + 0.5 * Math.sin(p.tw) + energy * 0.3;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.sz, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(220,210,255,${Math.min(p.ba * tw, 1).toFixed(3)})`;
-        ctx.fill();
-      });
+    let ybWinW = 0, ybBuiltW = 0, ybBuiltH = 0, ybBuiltFont = null;
+    const YB_PERIOD = 3.4;   // marquee period, in screen widths
+                             // (bigger = longer blank gap between passes;
+                             //  scroll speed is unchanged)
 
-      // Orbital rings
-      ORBITALS.forEach(o => {
-        o.rot += o.vel;
-        const rx = o.rx * R;
-        const ry = o.ry * R;
-        const a  = Math.min(o.baseAlpha + energy * 0.15 + gBeatFlash * 0.8, 1);
+    function buildWallMask() {
+      // window = how much of the mask is visible on screen at once
+      const win = 1400;
+      const MW  = Math.round(win * YB_PERIOD);
+      const MH  = Math.max(2, Math.round(win * (H / W)));
 
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(o.tilt + o.rot);
-        ctx.beginPath();
-        for (let t = 0; t <= Math.PI * 2 + 0.01; t += 0.03) {
-          const x = Math.cos(t) * rx;
-          const y = Math.sin(t) * ry;
-          t < 0.03 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      const off = document.createElement('canvas');
+      off.width = MW; off.height = MH;
+      const o = off.getContext('2d', { willReadFrequently: true });
+
+      const size = MH * 0.091;
+      o.font = `700 ${size}px Polymath, "Courier New", monospace`;
+      o.textAlign = 'center';
+      o.textBaseline = 'middle';
+      o.fillStyle = '#fff';
+      // Drawn once in the real Polymath Bold cut; the empty space around it
+      // becomes the gap between repeats as the marquee wraps.
+      o.fillText('YOU BELONG', MW / 2, MH / 2);
+
+      const data = o.getImageData(0, 0, MW, MH).data;
+
+      // For each column, record EVERY run of glyph pixels as [start,end]
+      // (normalized 0..1). Multiple runs preserve the counters in O, E, G, B.
+      const cols = new Array(MW);
+      for (let x = 0; x < MW; x++) {
+        const runs = [];
+        let inRun = false, runStart = 0;
+        for (let y = 0; y < MH; y++) {
+          const on = data[(y * MW + x) * 4 + 3] > 110;
+          if (on && !inRun) { inRun = true; runStart = y; }
+          else if (!on && inRun) { inRun = false; runs.push([runStart / MH, (y - 1) / MH]); }
         }
-        ctx.closePath();
-        ctx.strokeStyle = `rgba(${o.rgb},${a.toFixed(3)})`;
-        ctx.lineWidth   = o.lw + energy * 1.0 + gBeatFlash * 3.5;
-        ctx.shadowColor = `rgba(${o.rgb},${(a * 0.9).toFixed(3)})`;
-        ctx.shadowBlur  = 8 + energy * 10 + gBeatFlash * 28;
-        ctx.stroke();
-        ctx.shadowBlur  = 0;
-        ctx.restore();
-      });
+        if (inRun) runs.push([runStart / MH, (MH - 1) / MH]);
+        cols[x] = runs;
+      }
+      ybMask = cols; ybMaskW = MW; ybMaskH = MH; ybWinW = win;
+      ybBuiltW = W; ybBuiltH = H; ybBuiltFont = ybFontReady;
+    }
 
-      // Beat expanding ring from logo center
-      if (isBeat) spawnRing(energy, true);
+    function drawYouBelong(energy, isBeat) {
+      ctx.clearRect(0, 0, W, H);
+      if (!ybMask || ybBuiltW !== W || ybBuiltH !== H || ybBuiltFont !== ybFontReady) buildWallMask();
 
-      bloomRings = bloomRings.filter(r => r.alpha > 0.015);
-      bloomRings.forEach(r => {
-        r.r     += r.spd;
-        r.alpha *= 0.965;
-        r.spd   *= 0.995;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(cx, cy, r.r, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${r.rgb},${r.alpha})`;
-        ctx.lineWidth   = r.lw;
-        ctx.shadowColor = `rgba(${r.rgb},${r.alpha * 0.8})`;
-        ctx.shadowBlur  = 14;
-        ctx.stroke();
-        ctx.shadowBlur  = 0;
-        ctx.restore();
-      });
+      const time = performance.now() * 0.001;
+      if (isBeat) ybFlash = 1;
+      ybFlash *= 0.88;
+
+      // marquee: words travel left to right across the wall
+      ybScroll = (time * ybWinW * 0.16) % ybMaskW;
+
+      const bins = Math.floor(freqData.length * 0.6);
+
+      /* ── The wall of vertical lines ── */
+      // The words occupy a band across the middle of the screen.
+      const bandW = W;
+      const bandH = H;
+      const bandX = 0;
+      const bandY = 0;
+
+      const COLS   = Math.floor(bandW / 7);   // line density
+      const colW   = bandW / COLS;
+      const lineH  = bandH * 0.30;            // resting line height
+      const cx     = W / 2;
+
+      ctx.save();
+      ctx.lineCap = 'round';
+
+      for (let i = 0; i < COLS; i++) {
+        const fx = i / (COLS - 1);
+        const sx = bandX + fx * bandW;
+
+        // Broad shape: the whole wall breathes in unison ...
+        const t   = Math.min(Math.abs(sx - cx) / cx, 1);
+        const idx = Math.min(Math.floor(Math.pow(t, 1.5) * (bins - 1)), bins - 1);
+        const v   = Math.pow(freqData[idx] / 255, 1.4);
+        const wave = Math.sin(time * 1.6 + fx * 5.5) * 0.5 + 0.5;   // 0..1 in unison
+
+        // ... layered with faster, out-of-phase harmonics and a fixed
+        // per-column offset so neighbouring bars never match exactly.
+        // Without these the wall reads as flat rectangular slabs.
+        const h2 = Math.sin(time * 2.7  - fx * 17.0 + 1.3) * 0.5 + 0.5;
+        const h3 = Math.sin(time * 4.1  + fx * 39.0 + 2.9) * 0.5 + 0.5;
+        const detail = h2 * 0.55 + h3 * 0.45;
+
+        // deterministic per-column jitter (hash of the index)
+        const jitter = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+        const jit = (jitter < 0 ? jitter + 1 : jitter);
+
+        // a nearby spectrum bin adds spiky, per-bar audio detail
+        const fine = Math.pow(freqData[(idx * 7 + i * 3) % bins] / 255, 1.6);
+
+        const swell = wave * 0.26 + v * 0.62
+                    + detail * 0.20 + jit * 0.14 + fine * 0.30
+                    + ybFlash * 0.3;
+
+        // glyph mask for this column, shifted by the marquee scroll and
+        // wrapped so the wordmark travels continuously across the wall
+        let mc = Math.floor(fx * ybWinW - ybScroll) % ybMaskW;
+        if (mc < 0) mc += ybMaskW;
+
+        // line vertical extent, centered on the band
+        const h = lineH * (0.547 + swell * 0.567);
+        const yTop = bandY + (bandH - h) / 2;
+        const yBot = yTop + h;
+
+        // Purple is the base; only the tallest, most energetic bars tip
+        // into yellow, so the wall reads as purple with yellow accents.
+        const mix = Math.pow(Math.min(swell * 0.72, 1), 1.9);
+        const r = Math.round(130 + 123 * mix);
+        const g = Math.round(98  + 96  * mix);
+        const b = Math.round(169 - 80  * mix);
+        const a = 0.28 + swell * 0.5;
+        const lw = 2.0 + swell * 1.9;
+
+        ctx.strokeStyle = `rgba(${r},${g},${b},${a.toFixed(3)})`;
+        ctx.lineWidth   = lw;
+        ctx.shadowColor = `rgba(${r},${g},${b},0.6)`;
+        ctx.shadowBlur  = 4 + swell * 10;
+
+        const runs = ybMask[mc] || [];
+        const gap  = 3 + swell * 6;
+
+        if (!runs.length) {
+          ctx.beginPath();
+          ctx.moveTo(sx, yTop);
+          ctx.lineTo(sx, yBot);
+          ctx.stroke();
+        } else {
+          // Walk down the column drawing the spaces BETWEEN glyph runs,
+          // so letter counters (holes in O/E/G/B) stay filled with lines.
+          let cursor = yTop;
+          for (let ri = 0; ri < runs.length; ri++) {
+            const rTop = bandY + runs[ri][0] * bandH - gap;
+            const rBot = bandY + runs[ri][1] * bandH + gap;
+            if (rTop > cursor) {
+              ctx.beginPath();
+              ctx.moveTo(sx, cursor);
+              ctx.lineTo(sx, Math.min(rTop, yBot));
+              ctx.stroke();
+            }
+            cursor = Math.max(cursor, rBot);
+            if (cursor > yBot) break;
+          }
+          if (cursor < yBot) {
+            ctx.beginPath();
+            ctx.moveTo(sx, cursor);
+            ctx.lineTo(sx, yBot);
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.shadowBlur = 0;
+      ctx.restore();
     }
 
     /* ══════════════════════════════════════════
@@ -503,8 +623,8 @@ class AudioVisualizer extends HTMLElement {
 
       // Offset cy down by ~9px to align with the visual center of the logo circle
       // (the logo image is 350x393 — antenna sticks above, shifting the circle center down)
-      const cx = mainCanvas.width / 2;
-      const cy = mainCanvas.height / 2 + 9;
+      const cx = W / 2;
+      const cy = H / 2 + 9;
       const base = 75;
       const bins = Math.min(freqData.length, 160);
 
@@ -590,7 +710,7 @@ class AudioVisualizer extends HTMLElement {
 
       drawBg(energy);
       if      (mode === 0) drawWaveform(energy);
-      else if (mode === 1) drawParticles(energy, isBeat);
+      else if (mode === 1) drawYouBelong(energy, isBeat);
       else if (mode === 2) drawBloom(energy, isBeat);
     }
 
@@ -627,6 +747,32 @@ class AudioVisualizer extends HTMLElement {
         logo.classList.remove('playing');
         hint.style.opacity = '1';
         stopViz();
+      }
+    });
+
+    /* ── Desktop keyboard controls ── */
+    function jumpToMode(n) {
+      if (n === mode) return;
+      mode = n;
+      modeLabel.textContent = MODES[mode];
+      modeStart = performance.now();
+      wavePhase  = 0;
+      particles  = buildParticles();
+      bloomRings = [];
+      resetYouBelong();
+      doTransition();
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+      switch (e.key) {
+        case ' ':
+        case 'Spacebar':
+          e.preventDefault(); logo.click(); break;
+        case '1': jumpToMode(0); break;
+        case '2': jumpToMode(1); break;
+        case '3': jumpToMode(2); break;
+        case 'ArrowRight': nextMode(); break;
       }
     });
 
